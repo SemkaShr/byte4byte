@@ -3,9 +3,10 @@ from config import REDIS, RAY_LIFETIME, getLogger
 import json
 
 class Ray:
-    def __init__(self, id = None, request = None):
+    def __init__(self, group, id = None, request = None):
         self.data = None
         self.request = None
+        self.group = group
 
         self.id = id
         self.status = Status.UNVERFIED
@@ -14,12 +15,12 @@ class Ray:
             self.ip = self.request.client.host
             self.userAgent = request.headers.get("user-agent")
             
-            if len(request.headers.get('x-ja4-app')) == 0 and not request.client.host.startswith('188.127.241.'):
-                print(request.client.host)
-                print(request.headers.get('user-agent'))
+            # if len(request.headers.get('x-ja4-app')) == 0 and not request.client.host.startswith('188.127.241.'):
+            #     print(request.client.host)
+            #     print(request.headers.get('user-agent'))
 
-            if request.headers['host'] == 'captcha.qwertyx.host':
-                getLogger('debug').info(request.headers.get(''))
+            # if request.headers['host'] == 'captcha.qwertyx.host':
+            #     getLogger('debug').info(request.headers.get(''))
 
     def load(self, data):
         self.id = data['id']
@@ -37,7 +38,7 @@ class Ray:
         }
     
     def save(self):
-        REDIS.set('ray:' + str(self.id), json.dumps(self.dump()), RAY_LIFETIME)
+        REDIS.set('ray:' + self.group.name + ':' + str(self.id), json.dumps(self.dump()), RAY_LIFETIME)
 
     def verify(self):
         if self.data is not None and self.request is not None:

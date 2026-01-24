@@ -8,7 +8,7 @@ REDIS = redis.Redis(host='localhost', port=6379, db=0)
 RAY_LEN = 256
 RAY_LEN_SHORT = 12
 RAY_LIFETIME = 1800
-RAY_NAME = '_b4b-auth'
+RAY_NAME = 'byte4byte.auth'
 
 CAPTCHA_SIGNATURE_SALT = '02eKPuzlNXhgbyd6ZLaFpk7OVba6k3fU7Nrff3tnX8ONLFaoBB6K156keYuPUTLtq4qUPcWi6dCEtNHqQsRR3qNMY3fojTqS'
 

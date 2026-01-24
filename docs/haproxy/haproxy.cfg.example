@@ -1,0 +1,66 @@
+
+global
+    log /dev/log	local0
+    log /dev/log	local1 notice
+    stats socket /run/haproxy/admin.sock mode 660 level admin expose-fd listeners
+    stats timeout 30s
+    user haproxy
+    group haproxy 
+    daemon 
+    
+    # TLS Enable script
+    tune.ssl.capture-buffer-size 192
+    lua-load /etc/haproxy/ja4.lua
+
+
+defaults 
+    log global
+    mode http
+    option httplog 
+    option dontlognull 
+    timeout connect 5000
+    timeout client 50000
+    timeout server 50000
+    errorfile 400 /etc/haproxy/errors/400.http
+    errorfile 403 /etc/haproxy/errors/403.http
+    errorfile 408 /etc/haproxy/errors/408.http
+    errorfile 429 /etc/haproxy/errors/429.http
+    errorfile 500 /etc/haproxy/errors/500.http
+    errorfile 502 /etc/haproxy/errors/502.http
+    errorfile 503 /etc/haproxy/errors/503.http
+    errorfile 504 /etc/haproxy/errors/504.http
+
+
+frontend https_in 
+    bind *:443 ssl crt /etc/haproxy/certs/
+
+    # TLS
+    http-request lua.fingerprint_ja4
+    http-request set-var(txn.fingerprint_app) var(txn.fingerprint_ja4),map(/etc/haproxy/ja4.map)
+
+    # Rate-Limit
+    stick-table type ip size 100k expire 10s store http_req_rate(10s)
+    http-request track-sc0 src
+    http-request deny deny_status 429 if { sc_http_req_rate(0) gt 300 }
+
+    # TLS Headers
+    http-request set-header X-JA4-Fingerprint %[var(txn.fingerprint_ja4)]
+    http-request set-header X-JA4-App %[var(txn.fingerprint_app)]
+    http-request set-header X-JA4-Raw %[var(txn.fingerprint_ja4_raw)]
+
+    default_backend b4b_main  
+
+
+frontend http_in 
+    bind *:80 
+    stick-table type ip size 100k expire 10s store http_req_rate(10s)
+    http-request track-sc0 src
+    http-request deny deny_status 429 if { sc_http_req_rate(0) gt 100 }
+    redirect scheme https code 301
+
+
+backend b4b_main
+    balance roundrobin
+    option forwardfor 
+    server local_server 127.0.0.1:8080 
+
