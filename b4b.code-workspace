@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../playground"
+		},
+		{
+			"path": "../../etc/haproxy"
+		}
+	],
+	"settings": {}
+}

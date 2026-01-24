@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>502 Bad Gateway</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%
+        }
+
+        :root {
+            --bg: #ffffff;
+            --text: #1d1d1f;
+            --text-secondary: #6b6b70;
+            --accent: #0071e3;
+            --border: #d2d2d7;
+            --transition: all .28s ease;
+            --ff-opa: 0.95;
+            --ff-opa-min: 0.35;
+            --ff-blur: 48px;
+            --page-fade-duration: 900ms;
+        }
+
+        html.dark {
+            --bg: #05050a;
+            --text: #f7f7f8;
+            --text-secondary: #a3a3a6;
+            --accent: #2997ff;
+            --border: #303033;
+            --ff-opa: 0.18;
+            --ff-opa-min: 0.06;
+            --ff-blur: 72px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            overflow: hidden;
+            position: relative;
+            opacity: 0;
+            transform: translateY(6px);
+            animation: pageFade var(--page-fade-duration) cubic-bezier(.2, .9, .3, 1) forwards;
+        }
+
+        @keyframes pageFade {
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .wrapper {
+            width: 100%;
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .fireflies {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .firefly {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            will-change: transform, opacity, filter;
+            mix-blend-mode: screen;
+            opacity: var(--ff-opa);
+            filter: blur(var(--ff-blur));
+            transition: opacity .6s linear, filter .6s linear;
+            background: radial-gradient(circle, rgba(173, 216, 255, 1) 0%, rgba(173, 216, 255, 0.12) 55%, transparent 100%);
+            transform-origin: center;
+        }
+
+        .firefly:nth-child(1) {
+            left: -35vw;
+            top: -18vh;
+            width: 110vw;
+            height: 80vh;
+            background: radial-gradient(circle, rgba(52, 113, 255, 1) 0%, rgba(52, 113, 255, 0.22) 45%, transparent 100%);
+            animation: drift-tl 58s ease-in-out infinite, sway-tl 9s ease-in-out infinite, pulse-tl 12s ease-in-out infinite;
+            animation-delay: 0s, 1s, 0.5s;
+            z-index: 2;
+        }
+
+        .firefly:nth-child(2) {
+            right: -35vw;
+            top: -22vh;
+            width: 120vw;
+            height: 86vh;
+            background: radial-gradient(circle, rgba(32, 210, 195, 1) 0%, rgba(32, 210, 195, 0.18) 45%, transparent 100%);
+            animation: drift-tr 66s ease-in-out infinite, sway-tr 11s ease-in-out infinite, pulse-tr 14s ease-in-out infinite;
+            animation-delay: 6s, 0s, 2s;
+            z-index: 2;
+        }
+
+        .firefly:nth-child(3) {
+            right: -40vw;
+            bottom: -16vh;
+            width: 116vw;
+            height: 88vh;
+            background: radial-gradient(circle, rgba(183, 120, 255, 1) 0%, rgba(183, 120, 255, 0.20) 45%, transparent 100%);
+            animation: drift-br 62s ease-in-out infinite, sway-br 10s ease-in-out infinite, pulse-br 15s ease-in-out infinite;
+            animation-delay: 14s, 6s, 4s;
+            z-index: 2;
+        }
+
+        .firefly:nth-child(4) {
+            left: -40vw;
+            bottom: -20vh;
+            width: 104vw;
+            height: 76vh;
+            background: radial-gradient(circle, rgba(120, 155, 255, 1) 0%, rgba(120, 155, 255, 0.16) 45%, transparent 100%);
+            animation: drift-bl 70s ease-in-out infinite, sway-bl 12s ease-in-out infinite, pulse-bl 13s ease-in-out infinite;
+            animation-delay: 4s, 8s, 1s;
+            z-index: 2;
+        }
+
+        @keyframes drift-tl {
+            0% {
+                transform: translate(0, 0) scale(1) rotate(-2deg)
+            }
+            25% {
+                transform: translate(10vw, -6vh) scale(1.03) rotate(1deg)
+            }
+            50% {
+                transform: translate(-12vw, 8vh) scale(.98) rotate(-1deg)
+            }
+            75% {
+                transform: translate(6vw, 4vh) scale(1.02) rotate(2deg)
+            }
+            100% {
+                transform: translate(0, 0) scale(1) rotate(-2deg)
+            }
+        }
+
+        @keyframes drift-tr {
+            0% {
+                transform: translate(0, 0) scale(1) rotate(1deg)
+            }
+            25% {
+                transform: translate(-12vw, -8vh) scale(1.04) rotate(-2deg)
+            }
+            50% {
+                transform: translate(14vw, 6vh) scale(.99) rotate(2deg)
+            }
+            75% {
+                transform: translate(-8vw, 3vh) scale(1.02) rotate(-1deg)
+            }
+            100% {
+                transform: translate(0, 0) scale(1) rotate(1deg)
+            }
+        }
+
+        @keyframes drift-br {
+            0% {
+                transform: translate(0, 0) scale(1) rotate(0deg)
+            }
+            25% {
+                transform: translate(-10vw, 10vh) scale(1.03) rotate(2deg)
+            }
+            50% {
+                transform: translate(12vw, -8vh) scale(.97) rotate(-2deg)
+            }
+            75% {
+                transform: translate(8vw, -4vh) scale(1.01) rotate(1deg)
+            }
+            100% {
+                transform: translate(0, 0) scale(1) rotate(0deg)
+            }
+        }
+
+        @keyframes drift-bl {
+            0% {
+                transform: translate(0, 0) scale(1) rotate(-1deg)
+            }
+            25% {
+                transform: translate(8vw, -6vh) scale(1.02) rotate(1deg)
+            }
+            50% {
+                transform: translate(-14vw, 10vh) scale(.96) rotate(-2deg)
+            }
+            75% {
+                transform: translate(5vw, 6vh) scale(1.03) rotate(2deg)
+            }
+            100% {
+                transform: translate(0, 0) scale(1) rotate(-1deg)
+            }
+        }
+
+        @keyframes sway-tl {
+            0% {
+                transform: translate(0, 0)
+            }
+            50% {
+                transform: translate(3vw, -2vh)
+            }
+            100% {
+                transform: translate(0, 0)
+            }
+        }
+
+        @keyframes sway-tr {
+            0% {
+                transform: translate(0, 0)
+            }
+            50% {
+                transform: translate(-4vw, -3vh)
+            }
+            100% {
+                transform: translate(0, 0)
+            }
+        }
+
+        @keyframes sway-br {
+            0% {
+                transform: translate(0, 0)
+            }
+            50% {
+                transform: translate(-3vw, 3vh)
+            }
+            100% {
+                transform: translate(0, 0)
+            }
+        }
+
+        @keyframes sway-bl {
+            0% {
+                transform: translate(0, 0)
+            }
+            50% {
+                transform: translate(4vw, 2vh)
+            }
+            100% {
+                transform: translate(0, 0)
+            }
+        }
+
+        @keyframes pulse-tl {
+            0%,
+            100% {
+                opacity: var(--ff-opa)
+            }
+            50% {
+                opacity: var(--ff-opa-min)
+            }
+        }
+
+        @keyframes pulse-tr {
+            0%,
+            100% {
+                opacity: calc(var(--ff-opa)*0.95)
+            }
+            50% {
+                opacity: var(--ff-opa-min)
+            }
+        }
+
+        @keyframes pulse-br {
+            0%,
+            100% {
+                opacity: calc(var(--ff-opa)*0.9)
+            }
+            50% {
+                opacity: var(--ff-opa-min)
+            }
+        }
+
+        @keyframes pulse-bl {
+            0%,
+            100% {
+                opacity: calc(var(--ff-opa)*1.0)
+            }
+            50% {
+                opacity: var(--ff-opa-min)
+            }
+        }
+
+        .theme-switcher {
+            position: fixed;
+            top: 1.25rem;
+            right: 1.25rem;
+            z-index: 40;
+        }
+
+        #theme-toggle {
+            display: none
+        }
+
+        .theme-switcher label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(6px);
+        }
+
+        .theme-switcher i {
+            font-size: 20px;
+            color: var(--text)
+        }
+
+        .sun-icon {
+            display: none
+        }
+
+        html.dark .sun-icon {
+            display: block
+        }
+
+        html.dark .moon-icon {
+            display: none
+        }
+
+        .content {
+            max-width: 760px;
+            width: calc(100% - 2rem);
+            margin: auto;
+            text-align: center;
+            position: relative;
+            z-index: 30;
+            padding: 3.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            backdrop-filter: none;
+        }
+
+        .error-code {
+            font-size: 120px;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text)
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: .6rem;
+            color: var(--text)
+        }
+
+        p {
+            color: var(--text-secondary);
+            font-size: 17px;
+            line-height: 1.5;
+            margin-bottom: 2.5rem
+        }
+
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            margin: 3rem 0;
+            flex-wrap: wrap;
+            z-index: 30
+        }
+
+        .flow-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.02)
+        }
+
+        .flow-icon i {
+            font-size: 28px;
+            color: var(--text)
+        }
+
+        .flow-item.error .flow-icon {
+            border-color: var(--accent);
+            background: var(--accent)
+        }
+
+        .flow-item.error .flow-icon i {
+            color: #fff
+        }
+
+        .flow-label {
+            font-size: 13px;
+            color: var(--text-secondary)
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 1.75rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 30;
+            text-align: center
+        }
+
+        .ray-id {
+            font-family: "SF Mono", Monaco, monospace;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: .5rem
+        }
+
+        .contact a {
+            color: var(--accent);
+            text-decoration: none
+        }
+
+        @media (max-width:880px) {
+            .firefly:nth-child(1),
+            .firefly:nth-child(2),
+            .firefly:nth-child(3),
+            .firefly:nth-child(4) {
+                width: 130vw;
+                height: 70vh;
+            }
+        }
+
+        @media (max-width:640px) {
+            .error-code {
+                font-size: 64px
+            }
+            h1 {
+                font-size: 20px
+            }
+            p {
+                font-size: 15px
+            }
+            .firefly:nth-child(1),
+            .firefly:nth-child(2),
+            .firefly:nth-child(3),
+            .firefly:nth-child(4) {
+                width: 160vw !important;
+                height: 56vh !important;
+                filter: blur(56px);
+            }
+        }
+    </style>
+</head>
+
+<body><input type="checkbox" id="theme-toggle" aria-label="Change theme">
+    <div class="wrapper">
+        <div class="fireflies" aria-hidden="true">
+            <div class="firefly" aria-hidden="true"></div>
+            <div class="firefly" aria-hidden="true"></div>
+            <div class="firefly" aria-hidden="true"></div>
+            <div class="firefly" aria-hidden="true"></div>
+        </div>
+        <div class="theme-switcher" aria-hidden="false"><label for="theme-toggle" title="Change theme"><i class="bi bi-moon-stars moon-icon" aria-hidden="true"></i><i class="bi bi-sun sun-icon" aria-hidden="true"></i></label></div>
+        <div class="content" role="main" aria-live="polite">
+            <div class="error-code">503</div>
+            <h1>Service Unavailable</h1>
+            <p>The service is temporarily unavailable. We are already working on resolving the issue.</p>
+            <div class="flow-diagram">
+                <div class="flow-item">
+                    <div class="flow-icon"><i class="bi bi-person"></i></div><span class="flow-label">You</span></div>
+                <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+                <div class="flow-item error">
+                    <div class="flow-icon"><i class="bi bi-hdd-network"></i></div><span class="flow-label">Byte4Byte</span></div>
+                <div class="flow-arrow"><i class="bi bi-x-lg"></i></div>
+                <div class="flow-item">
+                    <div class="flow-icon"><i class="bi bi-globe"></i></div><span class="flow-label">Website</span></div>
+            </div>
+        </div>
+        <div class="footer">
+            <!-- <div class="ray-id">Ray ID: {{RAY_ID}}</div> -->
+            <div class="contact">Contact us: <a href="https://t.me/qwertyxhost_support_bot" target="_blank" rel="noopener">@Telegram</a></div>
+        </div>
+    </div>
+    <script>
+        (function() {
+            const toggle = document.getElementById('theme-toggle');
+            const applyDark = (isDark) => {
+                document.documentElement.classList.toggle('dark', isDark);
+                toggle.checked = isDark;
+            };
+            const mq = window.matchMedia('(prefers-color-scheme: dark)');
+            applyDark(mq.matches);
+            toggle.addEventListener('change', () => applyDark(toggle.checked));
+            if (typeof mq.addEventListener === 'function') {
+                mq.addEventListener('change', e => applyDark(e.matches));
+            } else if (typeof mq.addListener === 'function') {
+                mq.addListener(e => applyDark(e.matches));
+            }
+        })();
+    </script>
+</body>
+</html>
