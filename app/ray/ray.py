@@ -1,5 +1,5 @@
 from enum import Enum
-from config import REDIS, RAY_LIFETIME, getLogger, JA4_KEY_DETECT
+from config import REDIS, RAY_LIFETIME, getLogger, JA4_KEY_DETECT, BOT_USERAGENT_KEYWORDS, BOT_EXCLUDE
 import json
 import pprint
 
@@ -61,6 +61,8 @@ class Ray:
         REDIS.set('ray:' + self.group.name + ':' + str(self.id), json.dumps(self.dump()), RAY_LIFETIME)
 
     def verify(self):
+        pp = pprint.PrettyPrinter(indent=4)
+        
         if self.ip in self.group.whitelist:
             self.status = Status.VERFIED
             self.save()
@@ -69,12 +71,14 @@ class Ray:
         if self.data is not None and self.request is not None:
             if self.data['request']['ip'] != self.ip or self.data['request']['user-agent'] != self.userAgent:
                 self.status = Status.UNVERFIED
-            if self.data['request']['ja4_fingerprint'] != self.ja4_fingerprint:
-                self.status = Status.BLOCKED
-                self.save()
-                return self.status
-                 
-        if self.group.name == 'dev' and self.status == Status.UNVERFIED:
+            
+            if 'ja4_fingerprint' in self.data['request'] and self.ja4_fingerprint[:6] + 'XX' + self.ja4_fingerprint[8:23] != self.data['request']['ja4_fingerprint'][:6] + 'XX' + self.data['request']['ja4_fingerprint'][8:23]:
+                self.status = Status.UNVERFIED
+                # self.status = Status.CAPTCHA
+                # return self.status
+           
+        # First Filter 
+        if self.status == Status.UNVERFIED:
             if len(self.ja4_app) > 0:
                 if self.ja4_app.endswith(JA4_KEY_DETECT):
                     self.status = Status.BLOCKED
@@ -88,16 +92,28 @@ class Ray:
                     else:
                         self.status = Status.JS_CHALLANGE
             else:
-                self.status = Status.CAPTCHA
-                
-            pp = pprint.PrettyPrinter(indent=4)
+                bot = None
+                for word in BOT_EXCLUDE:
+                    if word in self.userAgent:
+                        bot = False
+                        break
+                if bot == None:
+                    bot = False
+                    for word in BOT_USERAGENT_KEYWORDS:
+                        if word in self.userAgent:
+                            bot = True
+                            break
+                if bot == True:
+                    self.status = Status.BLOCKED
+                else:
+                    self.status = Status.CAPTCHA
+            
+            pp.pprint(self.request.url.path)
             pp.pprint(self.dump())
-                
-            self.save()
         
-        if self.status == Status.UNVERFIED:
-            self.status = Status.VERFIED
-            self.save()
+        # if self.status == Status.UNVERFIED:
+        self.status = Status.VERFIED
+        self.save()
 
         return self.status
     

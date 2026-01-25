@@ -21,29 +21,31 @@ PAGE_502 = (PAGES_PATH / '502.html').read_text()
 
 JA4_KEY_DETECT = '<<BOT>>'
 
-# CAPTCHA_IMGS_PATH = Path('captcha_imgs')
-# CAPTCHA_IMGS_PATH.mkdir(parents=True, exist_ok=True)
-# CAPTCHA_IMGS = {}
+BOT_USERAGENT_KEYWORDS = []
 
-# entries = list(CAPTCHA_IMGS_PATH.iterdir())
-# for entry in entries:
-#     if entry.is_file() and not entry.suffix == '.tmp':
-#         name = entry.name.split('.')[0].split('_')[0]
-#         if not name in CAPTCHA_IMGS:
-#             CAPTCHA_IMGS[name] = []
+BOT_USERAGENT_KEYWORDS.extend([
+    'golang', 'wget', 'curl', 'go-http-client', 'apache-httpclient', 'java', 'perl',
+    'python', 'openssl', 'headless', 'cypress', 'mechanicalsoup', 'grpc-go', 'okhttp',
+    'httpx', 'httpcore', 'aiohttp', 'httputil', 'urllib', 'guzzle', 'axios', 'ruby',
+    'zend_http_client', 'wordpress', 'symfony', 'httpclient', 'cpp-httplib', 'ngrok',
+    'malware', 'httprequest',
+]) # Basic bots
+BOT_USERAGENT_KEYWORDS.extend([
+    'scan', 'scanner', 'nessus', 'metasploit', 'zgrab', 'zmap', 'nmap', 'research', 'inspect',
+]) # Scanners
+BOT_USERAGENT_KEYWORDS.extend([
+    'bot', 'mastodon', 'https://', 'http://', 'whatsapp', 'twitter', 'facebook', 'chatgpt',
+    'telegram', 'crawler', 'colly', 'phpcrawl', 'nutch', 'spider', 'scrapy', 'elinks',
+    'imageVacuum', 'apify', 'chrome-lighthouse', 'adsdefender', 'baidu', 'yandex', 'duckduckgo',
+    'google', 'yahoo', 'bing', 'microsoftpreview',
+]) # Web bots
+BOT_USERAGENT_KEYWORDS.extend([
+    'mozilla/4.', 'mozilla/3.', 'mozilla/2.', 'fidget-spinner-bot', 'test-bot', 'tiny-bot',
+    'download', 'printer', 'router', 'camera', 'phillips hue', 'vpn', 'cisco', 'proxy', 'image',
+    'office', 'fetcher', 'feed', 'photon', 'alittle client'
+]) # Random bots
 
-#         tmpFile = entry.with_suffix('.' + str(PID) + '.tmp')
-        
-#         img = Image.open(entry)
-#         img = img.resize((128,128))
-#         img.save(tmpFile, 'JPEG', optimize=True, quality=70)
-#         CAPTCHA_IMGS[name].append(tmpFile.read_bytes())
-
-#         tmpFile.unlink(True)
-
-# if len(CAPTCHA_IMGS.keys()) < 2 or len(entries) / len(CAPTCHA_IMGS.keys()) < 4:
-#     print('You need to have at least 2 captcha objects and 4 images for every')
-#     exit()
+BOT_EXCLUDE = ['google', 'yandex'] # Bots to exclude
 
 import logging
 def getLogger(name):
