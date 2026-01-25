@@ -30,5 +30,6 @@ class EndpointResponse:
 
 class EndpointResponseStatus(Enum):
     VERFIED = 'verfied'
+    JS_CHALLANGE = 'js_challange'
     CAPTCHA = 'captcha'
     BLOCKED = 'blocked'

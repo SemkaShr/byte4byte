@@ -6,6 +6,7 @@ from app.captcha import Captcha
 import config
 
 from app.endpoint import Endpoint, EndpointResponseStatus
+from starlette.requests import ClientDisconnect
 
 class Router:
     def __init__(self, app):
@@ -20,7 +21,7 @@ class Router:
                     endpoint = self.endpoints[host]
                     handle = await endpoint.handleRequest(request)
                     
-                    if handle.status == EndpointResponseStatus.VERFIED:
+                    if handle.status in [EndpointResponseStatus.VERFIED, EndpointResponseStatus.JS_CHALLANGE]:
                         body = await request.body()
 
                         try:
@@ -45,7 +46,7 @@ class Router:
                         for cookie in [v.decode('utf-8') for k, v in endpointResponse.headers.raw if k.lower() == b'set-cookie']:
                             response.headers.append('set-cookie', cookie)
                     elif handle.status == EndpointResponseStatus.CAPTCHA:
-                        response = Captcha(handle.ray).getResponse()
+                        response = await Captcha(handle.ray).getResponse()
                     else:
                         response = Response('Sorry! Status: ' + handle.status.value + '. Ray ID: ' + handle.ray.getShortID())
 
@@ -55,6 +56,8 @@ class Router:
                     return response
                 else:
                     return Response('Undefined host', 404)
+            except ClientDisconnect as e:
+                return Response(config.PAGE_503, 503)
             except Exception as e:
                 self.logger.exception(str(type(e)) + ': ' + str(e))
                 return Response(config.PAGE_503, 503)
@@ -65,7 +68,7 @@ class Router:
 
     def getRequestHeaders(self, request):
         result = {k: v for k, v in request.headers.items()}
-        result['x-byte4byte-ip'] = request.client.host
+        result['x-byte4byte-ip'] = request.headers.get('x-forwarded-for')
         result['accept-encoding'] = 'identity'
         return result
 

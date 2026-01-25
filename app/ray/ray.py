@@ -1,19 +1,33 @@
 from enum import Enum
-from config import REDIS, RAY_LIFETIME, getLogger
+from config import REDIS, RAY_LIFETIME, getLogger, JA4_KEY_DETECT
 import json
+import pprint
 
 class Ray:
     def __init__(self, group, id = None, request = None):
         self.data = None
         self.request = None
         self.group = group
+        self.checker = {}
+        
+        self.score = None
+        self.scoreLogs = None
+        self.savedScore = None
+        self.savedScoreLogs = None
+        
+        self.appAccuracy = None
 
         self.id = id
         self.status = Status.UNVERFIED
         if request is not None:
             self.request = request
-            self.ip = self.request.client.host
+            self.ip = self.request.headers.get('x-forwarded-for')
             self.userAgent = request.headers.get("user-agent")
+            
+            self.ja4_fingerprint = request.headers.get('X-JA4-Fingerprint')
+            self.ja4_app = request.headers.get('X-JA4-App')
+            self.ja4_raw = request.headers.get('X-JA4-Raw')
+            
             
             # if len(request.headers.get('x-ja4-app')) == 0 and not request.client.host.startswith('188.127.241.'):
             #     print(request.client.host)
@@ -25,15 +39,21 @@ class Ray:
     def load(self, data):
         self.id = data['id']
         self.status = Status(data['status'])
+        self.savedScore = data['score'] if 'score' in data else None
+        self.savedScoreLogs = data['scoreLogs'] if 'scoreLogs' in data else None
         self.data = data
     
     def dump(self):
         return {
             'id': self.id,
             'status': self.status.value,
+            'score': self.score,
+            'scoreLogs': self.scoreLogs,
+            'appAccuracy': self.appAccuracy,
             'request': {
                 'ip': self.ip,
-                'user-agent': self.userAgent
+                'user-agent': self.userAgent,
+                'ja4_fingerprint': self.ja4_fingerprint
             }
         }
     
@@ -41,15 +61,54 @@ class Ray:
         REDIS.set('ray:' + self.group.name + ':' + str(self.id), json.dumps(self.dump()), RAY_LIFETIME)
 
     def verify(self):
+        if self.ip in self.group.whitelist:
+            self.status = Status.VERFIED
+            self.save()
+            return self.status
+        
         if self.data is not None and self.request is not None:
             if self.data['request']['ip'] != self.ip or self.data['request']['user-agent'] != self.userAgent:
                 self.status = Status.UNVERFIED
-
+            if self.data['request']['ja4_fingerprint'] != self.ja4_fingerprint:
+                self.status = Status.BLOCKED
+                self.save()
+                return self.status
+                 
+        if self.group.name == 'dev' and self.status == Status.UNVERFIED:
+            if len(self.ja4_app) > 0:
+                if self.ja4_app.endswith(JA4_KEY_DETECT):
+                    self.status = Status.BLOCKED
+                else:
+                    accuracy = self._getUserAgentAccuracy(self.userAgent, self.ja4_app)
+                    self.appAccuracy = accuracy
+                    if accuracy < 0.3:
+                        self.status = Status.BLOCKED
+                    elif accuracy < 0.7:
+                        self.status = Status.CAPTCHA
+                    else:
+                        self.status = Status.JS_CHALLANGE
+            else:
+                self.status = Status.CAPTCHA
+                
+            pp = pprint.PrettyPrinter(indent=4)
+            pp.pprint(self.dump())
+                
+            self.save()
+        
         if self.status == Status.UNVERFIED:
             self.status = Status.VERFIED
             self.save()
 
         return self.status
+    
+    def _getUserAgentAccuracy(self, userAgent, ja4App):
+        a = 0
+        t = 0
+        for i in ja4App.split('_'):
+            if i in userAgent:
+                a += 1
+            t += 1
+        return a / t
     
     def getShortID(self):
         return self.id[:12] + self.id.split('.')[1]
@@ -59,4 +118,5 @@ class Status(Enum):
     VERIFING = 'verifing'
     VERFIED = 'verfied'
     CAPTCHA = 'captcha'
+    JS_CHALLANGE = 'js_challange'
     BLOCKED = 'blocked'

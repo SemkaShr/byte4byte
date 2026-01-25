@@ -13,6 +13,11 @@ class Group:
     def __init__(self, name : str):
         self.name = name
         self.logger = getLogger('b4b.' + name + '.group')
+        self.whitelist = []
+        
+    def whitelistAdd(self, *ips):
+        for ip in ips:
+            self.whitelist.append(ip)
 
     def getRay(self, request):
         rayID = request.cookies.get(RAY_NAME)

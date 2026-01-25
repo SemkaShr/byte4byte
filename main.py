@@ -26,6 +26,17 @@ router.addEndpoint(point)
 point = Endpoint('systems.qwertyx.host', 'https://94.198.55.226/', rayGroup)
 router.addEndpoint(point)
 
+rayGroup.whitelistAdd(
+    '188.127.241.229', 
+    '188.127.241.230', 
+    '188.127.241.231', 
+    '193.23.199.39', 
+    '188.127.241.234',
+    '188.127.241.232',
+    '188.127.241.233',
+    '94.198.55.217'
+)
+
 rayGroupDev = RayGroup('dev')
 point = Endpoint('captcha.qwertyx.host', 'https://94.198.55.226/', rayGroupDev)
 router.addEndpoint(point)
