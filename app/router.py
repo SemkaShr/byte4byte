@@ -1,7 +1,6 @@
 from fastapi import Request
 from fastapi.responses import Response
 import httpx
-import logging
 from app.captcha import Captcha
 
 import config
