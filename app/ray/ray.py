@@ -1,5 +1,5 @@
 from enum import Enum
-from config import REDIS, RAY_LIFETIME, getLogger, JA4_KEY_DETECT, BOT_USERAGENT_KEYWORDS, BOT_EXCLUDE
+from config import REDIS, RAY_LIFETIME, JA4_KEY_DETECT, BOT_USERAGENT_KEYWORDS, BOT_EXCLUDE
 import json
 import pprint
 
@@ -38,7 +38,7 @@ class Ray:
 
     def load(self, data):
         self.id = data['id']
-        self.status = Status(data['status'])
+        self.status = Status(data['status']) if data['status'] in set(Status) else Status.UNVERFIED
         self.savedScore = data['score'] if 'score' in data else None
         self.savedScoreLogs = data['scoreLogs'] if 'scoreLogs' in data else None
         self.data = data
@@ -74,10 +74,10 @@ class Ray:
             
             if 'ja4_fingerprint' in self.data['request'] and self.ja4_fingerprint[:6] + 'XX' + self.ja4_fingerprint[8:23] != self.data['request']['ja4_fingerprint'][:6] + 'XX' + self.data['request']['ja4_fingerprint'][8:23]:
                 self.status = Status.UNVERFIED
-                # self.status = Status.CAPTCHA
+                # self.status = Status.FULL_JS_CHALLANGE
                 # return self.status
            
-        # First Filter 
+        # JA4 / UserAgent Filter 
         if self.status == Status.UNVERFIED:
             if len(self.ja4_app) > 0:
                 if self.ja4_app.endswith(JA4_KEY_DETECT):
@@ -88,13 +88,14 @@ class Ray:
                     if accuracy < 0.3:
                         self.status = Status.BLOCKED
                     elif accuracy < 0.7:
-                        self.status = Status.CAPTCHA
+                        self.status = Status.FULL_JS_CHALLANGE
                     else:
                         self.status = Status.JS_CHALLANGE
             else:
                 bot = None
+                ua = self.userAgent.lower()
                 for word in BOT_EXCLUDE:
-                    if word in self.userAgent:
+                    if word in ua:
                         bot = False
                         break
                 if bot == None:
@@ -106,10 +107,11 @@ class Ray:
                 if bot == True:
                     self.status = Status.BLOCKED
                 else:
-                    self.status = Status.CAPTCHA
+                    self.status = Status.FULL_JS_CHALLANGE
             
-            pp.pprint(self.request.url.path)
-            pp.pprint(self.dump())
+            if self.status == Status.BLOCKED:
+                pp.pprint(self.request.url.path)
+                pp.pprint(self.dump())
         
         # if self.status == Status.UNVERFIED:
         self.status = Status.VERFIED
@@ -133,6 +135,6 @@ class Status(Enum):
     UNVERFIED = 'unverfied'
     VERIFING = 'verifing'
     VERFIED = 'verfied'
-    CAPTCHA = 'captcha'
+    FULL_JS_CHALLANGE = 'full_js_challange'
     JS_CHALLANGE = 'js_challange'
     BLOCKED = 'blocked'

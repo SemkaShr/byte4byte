@@ -2,7 +2,7 @@ import config
 import time
 from enum import Enum
 from app.ray.group import Group as RayGroup
-from app.ray.ray import Ray, Status
+from app.ray.ray import Status
 
 class Endpoint:
     def __init__(self, host: str, endpointAddress: str, rayGroup: RayGroup):
@@ -31,5 +31,5 @@ class EndpointResponse:
 class EndpointResponseStatus(Enum):
     VERFIED = 'verfied'
     JS_CHALLANGE = 'js_challange'
-    CAPTCHA = 'captcha'
+    FULL_JS_CHALLANGE = 'full_js_challange'
     BLOCKED = 'blocked'

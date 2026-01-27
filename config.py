@@ -10,16 +10,17 @@ RAY_LEN_SHORT = 12
 RAY_LIFETIME = 1800
 RAY_NAME = 'byte4byte.auth'
 
-PAGES_PATH = Path('app/pages/')
-PAGES_PATH.mkdir(parents=True, exist_ok=True)
+ASSETS_PATH = Path('app/assets/')
+ASSETS_PATH.mkdir(parents=True, exist_ok=True)
 
-# CAPTCHA_PAGE = (PAGES_PATH / 'captcha.html').read_text()
-CAPTCHA_SCRIPT = (PAGES_PATH / 'captcha.js').read_text()
-TIMEOUT_PAGE = (PAGES_PATH / 'timeout.html').read_text()
-PAGE_503 = (PAGES_PATH / '503.html').read_text()
-PAGE_502 = (PAGES_PATH / '502.html').read_text()
+FULL_CHALLANGE_SCRIPT = (ASSETS_PATH / 'full_challange.js').read_text()
+
+TIMEOUT_PAGE = (ASSETS_PATH / 'timeout.html').read_text()
+PAGE_503 = (ASSETS_PATH / '503.html').read_text()
+PAGE_502 = (ASSETS_PATH / '502.html').read_text()
 
 JA4_KEY_DETECT = '<<BOT>>'
+APP_HEADERS = ['x-forwarded-for', 'x-ja4-app', 'x-ja4-raw', 'x-ja4-fingerprint']
 
 BOT_USERAGENT_KEYWORDS = []
 

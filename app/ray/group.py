@@ -1,4 +1,4 @@
-from config import RAY_NAME, RAY_LEN, REDIS, RAY_LIFETIME, getLogger
+from config import RAY_NAME, RAY_LEN, REDIS, getLogger
 
 import random
 import string

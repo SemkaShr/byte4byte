@@ -1,7 +1,7 @@
 from fastapi import Request
 from fastapi.responses import Response
 import httpx
-from app.captcha import Captcha
+from app.challanges.full import FullChallange
 
 import config
 
@@ -45,8 +45,8 @@ class Router:
     
                         for cookie in [v.decode('utf-8') for k, v in endpointResponse.headers.raw if k.lower() == b'set-cookie']:
                             response.headers.append('set-cookie', cookie)
-                    elif handle.status == EndpointResponseStatus.CAPTCHA:
-                        response = await Captcha(handle.ray).getResponse()
+                    elif handle.status == EndpointResponseStatus.FULL_JS_CHALLANGE:
+                        response = await FullChallange(handle.ray).getResponse()
                     else:
                         response = Response('Sorry! Status: ' + handle.status.value + '. Ray ID: ' + handle.ray.getShortID())
 
@@ -67,7 +67,7 @@ class Router:
         self.endpoints[endpoint.host] = endpoint
 
     def getRequestHeaders(self, request):
-        result = {k: v for k, v in request.headers.items()}
+        result = {k: v for k, v in request.headers.items() if k.lower() not in config.APP_HEADERS}
         result['x-byte4byte-ip'] = request.headers.get('x-forwarded-for')
         result['accept-encoding'] = 'identity'
         return result

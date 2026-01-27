@@ -73,13 +73,13 @@ async function invisibleReload() {
             const startTime = performance.now()
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            canvas.width = 2000;
-            canvas.height = 500;
+            canvas.width = 300;
+            canvas.height = 200;
             ctx.textBaseline = "top";
             ctx.font = "14px 'Arial'";
             ctx.textBaseline = "alphabetic";
             ctx.fillStyle = "#f60";
-            ctx.fillRect(125, 1, 620, 2000);
+            ctx.fillRect(125, 1, 62, 200);
             ctx.fillStyle = "#069";
             ctx.fillText("byte4byte, <canvas> 1.0", 2, 15);
             ctx.fillStyle = "rgba(102, 204, 0, 0.7)";

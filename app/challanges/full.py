@@ -1,13 +1,10 @@
 from fastapi.responses import Response, JSONResponse
-from config import CAPTCHA_SCRIPT
+from config import FULL_CHALLANGE_SCRIPT
 from app.ray.ray import Status
-import random
-import base64
-import json
 
 import hashlib, hmac
 
-class Captcha:
+class FullChallange:
     def __init__(self, ray):
         self.ray = ray
     
@@ -110,48 +107,7 @@ class Captcha:
         return score, logs
     
     def _getScript(self, consts):
-        script = CAPTCHA_SCRIPT
+        script = FULL_CHALLANGE_SCRIPT
         for k, v in consts.items():
             script = script.replace('{{' + k + '}}', v)
         return script
-    
-    # def getResponse(self):
-    #     scriptHash = hashlib.sha256(self.ray.id.encode()).hexdigest()
-    #     scriptPath = '/' + scriptHash + '.js'
-        
-    #     if self.ray.request.url.path == scriptPath:
-    #         return Response('''
-    #                         alert('Hello, World!')
-    #                         ''')
-    #     else:
-    #         return Response('<script src="' + scriptPath + '">')
-    
-    # def getResponse(self):
-    #     random.seed(self.ray.id)
-    #     targetObject = random.choice(list(CAPTCHA_IMGS.keys()))
-
-    #     objects = []
-    #     for _ in range(random.randint(2,4)):
-    #         while True:
-    #             img = random.choice(CAPTCHA_IMGS[targetObject])
-    #             if not img in objects:
-    #                 objects.append(img)
-    #                 break
-
-    #     for _ in range(9 - len(objects)):
-    #         while True:
-    #             name = targetObject
-    #             while name == targetObject:
-    #                 name = random.choice(list(CAPTCHA_IMGS.keys()))
-    #             img = random.choice(CAPTCHA_IMGS[name])
-    #             if not img in objects:
-    #                 objects.append(img)
-    #                 break
-        
-    #     random.shuffle(objects)
-
-    #     grid = ''
-    #     for object in objects:
-    #         grid += '<img src="data:image/png;base64,' + base64.b64encode(object).decode() + '">'
-
-    #     return Response(CAPTCHA_PAGE.replace('{{RAY_ID}}', self.ray.getShortID()).replace('{{CAPTCHA_IMGS}}', grid).replace('{{CAPTCHA_TARGET}}', targetObject), 401)
