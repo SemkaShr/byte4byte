@@ -47,11 +47,6 @@ async function invisibleReload() {
 }
 
 (function() {
-    const CONFIG = {
-        endpoint: "/{{VERIFY_HASH}}",
-        timeout: 10000
-    };
-
     function getBotVars() {
         const vars = [
             '__webdriver_evaluate', '__selenium_evaluate', '__webdriver_script_function',
@@ -63,14 +58,13 @@ async function invisibleReload() {
         const found = vars.filter(v => window[v] !== undefined || document[v] !== undefined);
         
         for (let key in window) {
-            if (key.match(/\$cdc_|[a-z0-9]{22}_/i)) found.push("cdc_key_detected");
+            if (key.match(/\$cdc_|[a-z0-9]{22}_/i)) found.push("cd");
         }
         return found;
     };
 
     function getCanvasFingerprint() {
         try {
-            const startTime = performance.now()
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = 300;
@@ -84,7 +78,7 @@ async function invisibleReload() {
             ctx.fillText("byte4byte, <canvas> 1.0", 2, 15);
             ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
             ctx.fillText("b4b, <canvas> 1.0", 4, 17);
-            return {'data': canvas.toDataURL(), 'time': performance.now() - startTime};
+            return canvas.toDataURL();
         } catch (e) { return "error"; }
     }
 
@@ -93,9 +87,9 @@ async function invisibleReload() {
         try {
             const battery = await navigator.getBattery();
             return {
-                level: battery.level,
-                charging: battery.charging,
-                chargingTime: battery.chargingTime
+                '{{BATTERY_LEVEL}}': battery.level,
+                '{{BATTERY_CHARGING}}': battery.charging,
+                '{{BATTERY_CHARGING_TIME}}': battery.chargingTime
             };
         } catch (e) { return "error"; }
     }
@@ -127,58 +121,64 @@ async function invisibleReload() {
 
     async function collectAllSignals() {
         const signals = {
-            webgl: (() => {
+            '{{WEBGL}}': (() => {
                 const canvas = document.createElement('canvas');
                 const gl = canvas.getContext('webgl');
                 if (!gl) return null;
                 const debug = gl.getExtension('WEBGL_debug_renderer_info');
                 return {
-                    vendor: debug ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL) : 'unknown',
-                    renderer: debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : 'unknown'
+                    '{{WEBGL_VENDOR}}': debug ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL) : 'unknown',
+                    '{{WEBGL_RENDERER}}': debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : 'unknown'
                 };
             })(),
-            
-            canvas: getCanvasFingerprint(),
-            battery: await getBatteryInfo(),
-            fonts: getFonts(),
-            botVars: getBotVars(),
-            jit_performance: getJitPerformance(),
-            
-            automation: {
-                webdriver: navigator.webdriver,
-                plugins: navigator.plugins.length,
-                languages: navigator.languages,
-                isNativeToString: Function.prototype.toString.call(Function.prototype.toString).includes("[native code]")
-            },
-
-            screen: {
-                w: screen.width,
-                h: screen.height,
-                aw: screen.availWidth,
-                ah: screen.availHeight,
-                iw: window.innerWidth,
-                ih: window.innerHeight,
-                ow: window.outerWidth,
-                oh: window.outerHeight,
-                ratio: window.devicePixelRatio
-            },
-
-            hardware: {
-                cores: navigator.hardwareConcurrency,
-                memory: navigator.deviceMemory,
-                platform: navigator.platform
-            }
+            '{{CANVAS}}': getCanvasFingerprint(),
+            '{{BATTERY}}': await getBatteryInfo(),
+            '{{FONTS}}': getFonts(),
+            '{{BOTVARS}}': getBotVars(),
+            '{{JIT_PERFORMANCE}}': getJitPerformance(),
+            '{{WEBDRIVER}}': navigator.webdriver,
+            '{{PLUGINS}}': navigator.plugins.length,
+            '{{LANGUAGES}}': navigator.languages,
+            '{{IS_NATIVE_TO_STR}}': Function.prototype.toString.call(Function.prototype.toString).includes("[native code]"),
+            '{{SCREEN_W}}': screen.width,
+            '{{SCREEN_H}}': screen.height,
+            '{{SCREEN_AW}}': screen.availWidth,
+            '{{SCREEN_AH}}': screen.availHeight,
+            '{{SCREEN_IW}}': window.innerWidth,
+            '{{SCREEN_IH}}': window.innerHeight,
+            '{{SCREEN_OW}}': window.outerWidth,
+            '{{SCREEN_OH}}': window.outerHeight,
+            '{{SCREEN_RATIO}}': window.devicePixelRatio,
+            '{{CORES}}': navigator.hardwareConcurrency,
+            '{{MEMORY}}': navigator.deviceMemory,
+            '{{PLATFORM}}': navigator.platform
         };
 
         return signals;
     }
 
+    async function encrypt(data) {
+        const enc = new TextEncoder();
+        const keyData = enc.encode("{{SCRIPT_KEY}}".slice(0, 32));
+        const dataBytes = enc.encode(data);
+        
+        const cryptoKey = await crypto.subtle.importKey(
+            "raw", keyData, { name: "AES-ECB" }, false, ["encrypt"]
+        );
+        
+        const encrypted = await crypto.subtle.encrypt(
+            { name: "AES-ECB" }, cryptoKey, dataBytes
+        );
+        
+        return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+    }
+
     async function send() {
-        const data = await collectAllSignals();
-        fetch(CONFIG.endpoint, {
+        data = await collectAllSignals();
+        fetch("/{{SCRIPT_HASH_ID}}", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data)
+            body: encrypt(JSON.stringify(data))
         }).then(r => { invisibleReload() });
     }
 

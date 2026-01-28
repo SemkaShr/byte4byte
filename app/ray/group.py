@@ -5,14 +5,12 @@ import string
 import time
 import json
 
-from enum import Enum
-
 from app.ray.ray import Ray
 
 class Group:
     def __init__(self, name : str):
         self.name = name
-        self.logger = getLogger('b4b.' + name + '.group')
+        self.logger = getLogger('b4b.group.' + name)
         self.whitelist = []
         
     def whitelistAdd(self, *ips):

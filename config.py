@@ -1,6 +1,7 @@
 from pathlib import Path
-# from PIL import Image
-import os, redis
+import os
+import redis
+import javascript
 
 PID = os.getpid()
 REDIS = redis.Redis(host='localhost', port=6379, db=0)
@@ -9,13 +10,12 @@ RAY_LEN = 256
 RAY_LEN_SHORT = 12
 RAY_LIFETIME = 1800
 RAY_NAME = 'byte4byte.auth'
-
-ASSETS_PATH = Path('app/assets/')
+ASSETS_PATH = Path.cwd() / 'app' / 'assets'
 ASSETS_PATH.mkdir(parents=True, exist_ok=True)
 
 FULL_CHALLANGE_SCRIPT = (ASSETS_PATH / 'full_challange.js').read_text()
+OBFUSCATOR_JS = javascript.require('./node_modules/javascript-obfuscator/dist/index.js')
 
-TIMEOUT_PAGE = (ASSETS_PATH / 'timeout.html').read_text()
 PAGE_503 = (ASSETS_PATH / '503.html').read_text()
 PAGE_502 = (ASSETS_PATH / '502.html').read_text()
 
@@ -46,7 +46,7 @@ BOT_USERAGENT_KEYWORDS.extend([
     'office', 'fetcher', 'feed', 'photon', 'alittle client'
 ]) # Random bots
 
-BOT_EXCLUDE = ['google', 'yandex'] # Bots to exclude
+BOT_EXCLUDE = ['google', 'yandex'] # Bots to exclude. Only works with User-Agent
 
 import logging
 def getLogger(name):

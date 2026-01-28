@@ -1,8 +1,12 @@
 from fastapi.responses import Response, JSONResponse
-from config import FULL_CHALLANGE_SCRIPT
+from config import FULL_CHALLANGE_SCRIPT, OBFUSCATOR_JS
 from app.ray.ray import Status
 
-import hashlib, hmac
+import hashlib
+
+import time
+import random
+import string
 
 class FullChallange:
     def __init__(self, ray):
@@ -111,3 +115,78 @@ class FullChallange:
         for k, v in consts.items():
             script = script.replace('{{' + k + '}}', v)
         return script
+    
+class Script:
+    VARIABLES = [
+        'CANVAS',
+        'BATTERY',
+        'FONTS',
+        'BOTVARS',
+        'JIT_PERFORMANCE',
+        'WEBDRIVER',
+        'PLUGINS',
+        'LANGUAGES',
+        'IS_NATIVE_TO_STR',
+        'SCREEN_W',
+        'SCREEN_H',
+        'SCREEN_AW',
+        'SCREEN_AH',
+        'SCREEN_IW',
+        'SCREEN_IH',
+        'SCREEN_OW',
+        'SCREEN_OH',
+        'SCREEN_RATIO',
+        'BATTERY_LEVEL',
+        'BATTERY_CHARGING',
+        'BATTERY_CHARGING_TIME',
+        'WEBGL',
+        'WEBGL_VENDOR',
+        'WEBGL_RENDERER',
+        'CORES',
+        'MEMORY',
+        'PLATFORM'
+    ]
+    
+    def __init__(self):
+        self.encryptionKey = self._genString(32)
+        self.hash = hashlib.sha256(self.encryptionKey.encode()).hexdigest()
+        
+        self.rawCode = FULL_CHALLANGE_SCRIPT
+        self.varNames = self._genNames()
+        
+        for i, key in enumerate(self.VARIABLES):
+            self.rawCode = self.rawCode.replace('{{' + str(key) + '}}', self.varNames[i])
+            
+        self.rawCode.replace('{{SCRIPT_HASH_ID}}', self.hash)
+        self.rawCode.replace('{{SCRIPT_KEY}}', self.encryptionKey)
+        
+        self.code = OBFUSCATOR_JS.obfuscate(self.rawCode, {
+            'renameGlobals': True,
+            'compact': True,
+            'renameProperties': True,
+            'splitStrings': True,
+            'numbersToExpressions': True,
+            'selfDefending': True
+        }).getObfuscatedCode()
+        
+    
+    def _genNames(self):
+        varLen = max(len(self.VARIABLES) // len(string.ascii_letters), 1)
+        names = []
+        for i in range(len(self.VARIABLES)):
+            name = ''
+            n = i
+            for _ in range(varLen):
+                n, idx = divmod(n, len(string.ascii_letters))
+                name += string.ascii_letters[idx]
+            names.append(name)
+            
+        random.seed(time.time_ns())
+        random.shuffle(names)
+            
+        return names
+
+    
+    def _genString(self, length):
+        random.seed(time.time_ns())
+        return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
