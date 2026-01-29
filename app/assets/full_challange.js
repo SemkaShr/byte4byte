@@ -63,27 +63,8 @@ async function invisibleReload() {
         return found;
     };
 
-    function getCanvasFingerprint() {
-        try {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = 300;
-            canvas.height = 200;
-            ctx.textBaseline = "top";
-            ctx.font = "14px 'Arial'";
-            ctx.textBaseline = "alphabetic";
-            ctx.fillStyle = "#f60";
-            ctx.fillRect(125, 1, 62, 200);
-            ctx.fillStyle = "#069";
-            ctx.fillText("byte4byte, <canvas> 1.0", 2, 15);
-            ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
-            ctx.fillText("b4b, <canvas> 1.0", 4, 17);
-            return canvas.toDataURL();
-        } catch (e) { return "error"; }
-    }
-
     async function getBatteryInfo() {
-        if (!navigator.getBattery) return "not_supported";
+        if (!navigator.getBattery) return "ns";
         try {
             const battery = await navigator.getBattery();
             return {
@@ -131,7 +112,6 @@ async function invisibleReload() {
                     '{{WEBGL_RENDERER}}': debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : 'unknown'
                 };
             })(),
-            '{{CANVAS}}': getCanvasFingerprint(),
             '{{BATTERY}}': await getBatteryInfo(),
             '{{FONTS}}': getFonts(),
             '{{BOTVARS}}': getBotVars(),
@@ -147,6 +127,7 @@ async function invisibleReload() {
             '{{SCREEN_IW}}': window.innerWidth,
             '{{SCREEN_IH}}': window.innerHeight,
             '{{SCREEN_OW}}': window.outerWidth,
+            '{{USERAGENT}}': navigator.userAgent,
             '{{SCREEN_OH}}': window.outerHeight,
             '{{SCREEN_RATIO}}': window.devicePixelRatio,
             '{{CORES}}': navigator.hardwareConcurrency,
@@ -159,15 +140,16 @@ async function invisibleReload() {
 
     async function encrypt(data) {
         const enc = new TextEncoder();
-        const keyData = enc.encode("{{SCRIPT_KEY}}".slice(0, 32));
-        const dataBytes = enc.encode(data);
+        const keyStr = "{{SCRIPT_KEY}}".slice(0, 32);
+        const keyData = enc.encode(keyStr);
         
         const cryptoKey = await crypto.subtle.importKey(
-            "raw", keyData, { name: "AES-ECB" }, false, ["encrypt"]
+            "raw", keyData, { name: "AES-CBC" }, false, ["encrypt"]
         );
         
+        const dataBytes = enc.encode(data);
         const encrypted = await crypto.subtle.encrypt(
-            { name: "AES-ECB" }, cryptoKey, dataBytes
+            { name: "AES-CBC", 'iv': new Uint8Array(16) }, cryptoKey, dataBytes
         );
         
         return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
@@ -178,7 +160,7 @@ async function invisibleReload() {
         fetch("/{{SCRIPT_HASH_ID}}", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: encrypt(JSON.stringify(data))
+            body: await encrypt(JSON.stringify(data))
         }).then(r => { invisibleReload() });
     }
 

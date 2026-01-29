@@ -1,26 +1,37 @@
 from fastapi.responses import Response, JSONResponse
-from config import FULL_CHALLANGE_SCRIPT, OBFUSCATOR_JS
+from config import FULL_CHALLANGE_SCRIPT, OBFUSCATOR_JS, REDIS, FULL_CHALLANGE_SCRIPT_AMOUNT, FULL_CHALLANGE_SCRIPT_LIFETIME
 from app.ray.ray import Status
 
 import hashlib
-
 import time
 import random
 import string
+import json
+import base64
+from Crypto.Cipher import AES
 
 class FullChallange:
     def __init__(self, ray):
         self.ray = ray
     
     async def getResponse(self):
-        verifyHash = hashlib.sha256(self.ray.id.encode()).hexdigest()
-        if self.ray.request.url.path == '/' + verifyHash:
-            data = await self.ray.request.json()
-            score, logs = self._calcScore(data)
+        script = self.getScript()
+        if self.ray.request.url.path == '/' + script.hash and self.ray.request.method == 'POST':
+            body = await self.ray.request.body()
+            data = script.decrypt(body)
+            
+            score, logs = self.calcScore(data, script)
             self.ray.score = score
             self.ray.scoreLogs = logs
             
+            print(data)
+            print(score)
+            print(logs)
+            
             if score >= 100:
+                self.ray.status = Status.BLOCKED
+                self.ray.save()
+                
                 return JSONResponse({'ok': False})
             else:
                 self.ray.status = Status.VERFIED
@@ -28,87 +39,113 @@ class FullChallange:
                 
                 return JSONResponse({'ok': True})
         else:
-            consts = {
-                'VERIFY_HASH': verifyHash
-            }
-            return Response('<script>' + self._getScript(consts) + '</script>')
+            return Response('<script>' + script.code + '</script>') 
+                
+    def getScript(self):
+        script = Script()
         
-    def _calcScore(self, data):
+        if self.ray.fullChallangeID is not None and REDIS.exists('challanges:full:' + str(self.ray.fullChallangeID)):
+            script.load(self.ray.fullChallangeID, json.loads(REDIS.get('challanges:full:' + str(self.ray.fullChallangeID))))
+            return script
+        
+        keys = REDIS.keys('challanges:full:*')
+        if len(keys) >= FULL_CHALLANGE_SCRIPT_AMOUNT:
+            random.seed(time.time_ns())
+            random.shuffle(keys)
+            
+            scriptKey = None
+            for key in keys:
+                if REDIS.ttl(key) > FULL_CHALLANGE_SCRIPT_LIFETIME / 2:
+                    scriptKey = key
+                    break
+                
+            if scriptKey is not None:
+                scriptID = scriptKey.split(':')[-1]
+                self.ray.fullChallangeID = scriptID
+                self.ray.save()
+                script.load(scriptID, REDIS.get(scriptKey))
+                return script
+        
+        script.generate()
+        self.ray.fullChallangeID = script.encryptionKey
+        self.ray.save()
+        return script
+            
+        
+    def calcScore(self, data, script):
         score = 0
-        logs = []
+        reasons = []
         
-        bot_vars = data.get('bot_vars', [])
-        if len(bot_vars) > 0:
+        botVars = data.get(script.get('BOTVARS'), [])
+        if len(botVars) > 0:
             score += 100
-            logs.append(f"Automation variables detected: {bot_vars}")
-
-        webgl = data.get('webgl', {})
+            reasons.append(f"Automation variables detected: {botVars}")
+        
+        if data.get(script.get('CORES'), 0) <= 2:
+            score += 20
+            reasons.append("Low CPU cores (<= 2)")
+            
+        webgl = data.get(script.get('WEBGL'), {})
         if webgl:
-            renderer = webgl.get('renderer', '').lower()
-            vendor = webgl.get('vendor', '').lower()
+            renderer = webgl.get(script.get('WEBGL_RENDERER'), '').lower()
+            vendor = webgl.get(script.get('WEBGL_VENDOR'), '').lower()
             
             bad_renderers = ['swiftshader', 'llvmpipe', 'virtualbox', 'vmware', 'software adapter', 'mesa', 'microsoft basic render driver']
             for bad in bad_renderers:
                 if bad in renderer or bad in vendor:
                     score += 100
-                    logs.append(f"Detected VM/Headless Renderer: {renderer}")
+                    reasons.append(f"Detected VM/Headless Renderer: {renderer}")
                     break
-
-        if data.get('automation', {}).get('webdriver') is True:
-            score += 90
-            logs.append("Navigator.webdriver is True")
+        else:
+            score += 100
+            reasons.append(f"WebGL is undefiend")
             
-        jit_time = data.get('jit_performance', 0)
+        if data.get(script.get('WEBDRIVER')) is True:
+            score += 90
+            reasons.append("Navigator.webdriver is True")
+            
+        jit_time = data.get(script.get('JIT_PERFORMANCE'), 101)
         if jit_time > 100:
             score += 15
-            logs.append(f"Slow JS execution: {jit_time}ms")
+            reasons.append(f"Slow JS execution: {jit_time}ms")
             
-        canvas = data.get('canvas', {})
-        if canvas:
-            canvas_time = canvas.get('time', 0)
-            if canvas_time > 30:
-                score += 15
-                logs.append(f"Slow Canvas render: {jit_time}ms")
-
-        screen = data.get('screen', {})
-        if screen.get('ow') == 0 or screen.get('oh') == 0:
+        if data.get(script.get('SCREEN_OW')) == 0 or data.get(script.get('SCREEN_OH')) == 0:
             score += 80
-            logs.append("Window outer dimensions are 0 (Headless)")
+            reasons.append("Window outer dimensions are 0 (Headless)")
         
-        if screen.get('iw') == screen.get('ow') and screen.get('ih') == screen.get('oh'):
+        if data.get(script.get('SCREEN_IW')) == data.get(script.get('SCREEN_OW')) and data.get(script.get('SCREEN_IH')) == data.get(script.get('SCREEN_OH')):
             score += 40
-            logs.append("No browser chrome detected (Inner == Outer size)")
-
-        hw = data.get('hardware', {})
-        if hw.get('cores') is not None and hw.get('cores') < 2:
-            score += 20
-            logs.append("Low CPU cores (< 2)")
-
-        battery = data.get('battery')
-        if battery == "not_supported":
-            ua = data.get('automation', {}).get('userAgent', '').lower()
+            reasons.append("No browser chrome detected (Inner == Outer size)")
+        
+        if self.ray.userAgent != data.get(script.get('USERAGENT'), ''):
+            score += 100
+            reasons.append("User agant is different")
+        
+        battery = data.get(script.get('BATTERY'))
+        if battery == "ns":
+            ua = data.get(script.get('USERAGENT'), '').lower()
             if 'mobile' in ua or 'android' in ua or 'iphone' in ua:
                 score += 50
-                logs.append("Mobile User-Agent but Battery API not supported")
+                reasons.append("Mobile User-Agent but Battery API not supported")
         elif isinstance(battery, dict):
-            if battery.get('level') == 1.0 and battery.get('charging') is True and battery.get('chargingTime') == 0:
+            if battery.get(script.get('BATTERY_LEVEL')) == 1.0 and battery.get(script.get('BATTERY_CHARGING')) is True and battery.get(script.get('BATTERY_CHARGING_TIME')) == 0:
                 score += 15
-                logs.append("Suspicious battery state (Always 100% charging)")
-
-        if data.get('automation', {}).get('plugins') == 0:
+                reasons.append("Suspicious battery state (Always 100% charging)")
+        
+        if data.get(script.get('PLUGINS')) == 0:
             score += 30
-            logs.append("No browser plugins detected")
+            reasons.append("No browser plugins detected")
 
-        if data.get('automation', {}).get('isNativeToString') is False:
+        if data.get(script.get('IS_NATIVE_TO_STR')) is False:
             score += 100
-            logs.append("Function.toString was tampered (Prototyping hack)")
+            reasons.append("Function.toString was tampered (Prototyping hack)")
 
-        fonts = data.get('fonts', [])
+        fonts = data.get(script.get('FONTS'), [])
         if len(fonts) < 3:
             score += 30
-            logs.append(f"Too few system fonts: {len(fonts)}")
+            reasons.append(f"Too few system fonts: {len(fonts)}")
         
-        return score, logs
+        return score, reasons
     
     def _getScript(self, consts):
         script = FULL_CHALLANGE_SCRIPT
@@ -144,31 +181,85 @@ class Script:
         'WEBGL_RENDERER',
         'CORES',
         'MEMORY',
-        'PLATFORM'
+        'PLATFORM',
+        'USERAGENT'
     ]
     
     def __init__(self):
-        self.encryptionKey = self._genString(32)
+        self.code = None
+        self.rawCode = None
+        self.varNames = None
+        
+    def load(self, key, data):
+        if len(key) != 32:
+            return False
+        self.encryptionKey = key
         self.hash = hashlib.sha256(self.encryptionKey.encode()).hexdigest()
         
-        self.rawCode = FULL_CHALLANGE_SCRIPT
-        self.varNames = self._genNames()
+        self.code = data.get('code', None)
+        self.varNames = data.get('vars', None)
         
-        for i, key in enumerate(self.VARIABLES):
-            self.rawCode = self.rawCode.replace('{{' + str(key) + '}}', self.varNames[i])
+        return self
+    
+    def decrypt(self, data):
+        encrypted = base64.b64decode(data)
+    
+        cipher = AES.new(
+            self.encryptionKey.encode()[:32], 
+            AES.MODE_CBC, 
+            iv=bytes(16)
+        )
+
+        decrypted = cipher.decrypt(encrypted)
+        padding_length = decrypted[-1]
+        decrypted = decrypted[:-padding_length]
+        
+        return json.loads(decrypted.decode())
+
             
-        self.rawCode.replace('{{SCRIPT_HASH_ID}}', self.hash)
-        self.rawCode.replace('{{SCRIPT_KEY}}', self.encryptionKey)
+    def dump(self):
+        return {
+            'code': self.code,
+            'vars': self.varNames
+        }
         
-        self.code = OBFUSCATOR_JS.obfuscate(self.rawCode, {
-            'renameGlobals': True,
-            'compact': True,
-            'renameProperties': True,
-            'splitStrings': True,
-            'numbersToExpressions': True,
-            'selfDefending': True
-        }).getObfuscatedCode()
+    def getCode(self):
+        if self.code == None:
+            self.varNames = self._genNames()
         
+            for i, key in enumerate(self.VARIABLES):
+                self.rawCode = self.rawCode.replace('{{' + str(key) + '}}', self.varNames[i])
+                
+            self.rawCode = self.rawCode.replace('{{SCRIPT_HASH_ID}}', self.hash)
+            self.rawCode = self.rawCode.replace('{{SCRIPT_KEY}}', self.encryptionKey)
+            
+            self.code = OBFUSCATOR_JS.obfuscate(self.rawCode, {
+                'renameGlobals': True,
+                'compact': True,
+                'renameProperties': False,
+                'splitStrings': False,
+                'numbersToExpressions': True,
+                'transformObjectKeys': False,
+                'reservedNames': ['iv', 'Uint8Array'],
+                'selfDefending': True
+            }).getObfuscatedCode()
+        return self.code
+        
+    def save(self):
+        REDIS.set('challanges:full:' + str(self.encryptionKey), json.dumps(self.dump()), FULL_CHALLANGE_SCRIPT_LIFETIME)
+    
+    def generate(self):
+        self.encryptionKey = self._genString(32)
+        self.hash = hashlib.sha256(self.encryptionKey.encode()).hexdigest()
+        self.rawCode = FULL_CHALLANGE_SCRIPT
+        self.code = self.getCode()
+        self.save()
+        return self
+    
+    def get(self, key):
+        if self.varNames == None:
+            return None
+        return self.varNames[self.VARIABLES.index(key)]
     
     def _genNames(self):
         varLen = max(len(self.VARIABLES) // len(string.ascii_letters), 1)
@@ -181,11 +272,10 @@ class Script:
                 name += string.ascii_letters[idx]
             names.append(name)
             
-        random.seed(time.time_ns())
+        random.seed(self.encryptionKey)
         random.shuffle(names)
             
         return names
-
     
     def _genString(self, length):
         random.seed(time.time_ns())

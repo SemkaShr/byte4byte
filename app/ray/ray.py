@@ -10,10 +10,13 @@ class Ray:
         self.group = group
         self.checker = {}
         
+        self.fullChallangeID = None
+        
         self.score = None
         self.scoreLogs = None
         self.savedScore = None
         self.savedScoreLogs = None
+        self.verifyLogs = None
         
         self.appAccuracy = None
 
@@ -38,9 +41,10 @@ class Ray:
 
     def load(self, data):
         self.id = data['id']
-        self.status = Status(data['status']) if data['status'] in set(Status) else Status.UNVERFIED
-        self.savedScore = data['score'] if 'score' in data else None
-        self.savedScoreLogs = data['scoreLogs'] if 'scoreLogs' in data else None
+        self.status = Status(data['status']) if any(k.value == data['status'] for k in Status) else Status.UNVERFIED
+        self.savedScore = data.get('score', None)
+        self.savedScoreLogs = data.get('scoreLogs', None)
+        self.fullChallangeID = data.get('fullChallangeID', None)
         self.data = data
     
     def dump(self):
@@ -50,6 +54,8 @@ class Ray:
             'score': self.score,
             'scoreLogs': self.scoreLogs,
             'appAccuracy': self.appAccuracy,
+            'fullChallangeID': self.fullChallangeID,
+            'verifyLogs': self.verifyLogs,
             'request': {
                 'ip': self.ip,
                 'user-agent': self.userAgent,
@@ -63,34 +69,46 @@ class Ray:
     def verify(self):
         pp = pprint.PrettyPrinter(indent=4)
         
+        self.verifyLogs = []
         if self.ip in self.group.whitelist:
             self.status = Status.VERFIED
+            self.verifyLogs.append('IP in whitelist')
             self.save()
             return self.status
         
         if self.data is not None and self.request is not None:
             if self.data['request']['ip'] != self.ip or self.data['request']['user-agent'] != self.userAgent:
                 self.status = Status.UNVERFIED
+                self.verifyLogs.append('Request ip or user agent changed. Status set to Unverfied')
             
             if 'ja4_fingerprint' in self.data['request'] and self.ja4_fingerprint[:6] + 'XX' + self.ja4_fingerprint[8:23] != self.data['request']['ja4_fingerprint'][:6] + 'XX' + self.data['request']['ja4_fingerprint'][8:23]:
                 self.status = Status.UNVERFIED
+                self.verifyLogs.append('Request JA4 fingerprint changes. Status set to Unverfied')
                 # self.status = Status.FULL_JS_CHALLANGE
                 # return self.status
+                
+        if self.userAgent == None:
+            self.status = Status.BLOCKED
+            self.verifyLogs.append('User agent is None')
            
         # JA4 / UserAgent Filter 
         if self.status == Status.UNVERFIED:
             if len(self.ja4_app) > 0:
                 if self.ja4_app.endswith(JA4_KEY_DETECT):
                     self.status = Status.BLOCKED
+                    self.verifyLogs.append('Bot detected by JA4 fingerprint')
                 else:
                     accuracy = self._getUserAgentAccuracy(self.userAgent, self.ja4_app)
                     self.appAccuracy = accuracy
                     if accuracy < 0.3:
                         self.status = Status.BLOCKED
+                        self.verifyLogs.append('Low JA4 App accuracy. Set status to blocked')
                     elif accuracy < 0.7:
                         self.status = Status.FULL_JS_CHALLANGE
+                        self.verifyLogs.append('Medium JA4 App accuracy. Set status to FULL JS CHALLANGE')
                     else:
                         self.status = Status.JS_CHALLANGE
+                        self.verifyLogs.append('Normal JA4 App accuracy. Set status to JS CHALLANGE')
             else:
                 bot = None
                 ua = self.userAgent.lower()
@@ -106,15 +124,20 @@ class Ray:
                             break
                 if bot == True:
                     self.status = Status.BLOCKED
+                    self.verifyLogs.append('Bot detected in User-Agent. Set status to Blocked')
                 else:
                     self.status = Status.FULL_JS_CHALLANGE
+                    self.verifyLogs.append('No JA4 App found, No bot detected. Changed status to FULL_JS_CHALLANGE')
             
             if self.status == Status.BLOCKED:
                 pp.pprint(self.request.url.path)
                 pp.pprint(self.dump())
         
         # if self.status == Status.UNVERFIED:
-        self.status = Status.VERFIED
+        if self.group.name == 'dev' and self.status not in [Status.VERFIED]:
+            self.status = Status.FULL_JS_CHALLANGE
+        else:
+            self.status = Status.VERFIED
         self.save()
 
         return self.status

@@ -14,6 +14,9 @@ ASSETS_PATH = Path.cwd() / 'app' / 'assets'
 ASSETS_PATH.mkdir(parents=True, exist_ok=True)
 
 FULL_CHALLANGE_SCRIPT = (ASSETS_PATH / 'full_challange.js').read_text()
+FULL_CHALLANGE_SCRIPT_AMOUNT = 20
+FULL_CHALLANGE_SCRIPT_LIFETIME = 180 # Hint: Do not set less then 90s
+
 OBFUSCATOR_JS = javascript.require('./node_modules/javascript-obfuscator/dist/index.js')
 
 PAGE_503 = (ASSETS_PATH / '503.html').read_text()
@@ -23,7 +26,6 @@ JA4_KEY_DETECT = '<<BOT>>'
 APP_HEADERS = ['x-forwarded-for', 'x-ja4-app', 'x-ja4-raw', 'x-ja4-fingerprint']
 
 BOT_USERAGENT_KEYWORDS = []
-
 BOT_USERAGENT_KEYWORDS.extend([
     'golang', 'wget', 'curl', 'go-http-client', 'apache-httpclient', 'java', 'perl',
     'python', 'openssl', 'headless', 'cypress', 'mechanicalsoup', 'grpc-go', 'okhttp',
