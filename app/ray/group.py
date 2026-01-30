@@ -4,6 +4,7 @@ import random
 import string
 import time
 import json
+import ipaddress
 
 from app.ray.ray import Ray
 
@@ -13,9 +14,13 @@ class Group:
         self.logger = getLogger('b4b.group.' + name)
         self.whitelist = []
         
-    def whitelistAdd(self, *ips):
-        for ip in ips:
-            self.whitelist.append(ip)
+    def whitelistAdd(self, *subnets):
+        for subnet_str in subnets:
+            if '/' in subnet_str:
+                subnet = ipaddress.ip_network(subnet_str, strict=False)
+            else:
+                subnet = ipaddress.ip_network(f"{subnet_str}/{'128' if ipaddress.ip_address(subnet_str).version == 6 else '32'}", strict=False)
+            self.whitelist.append(subnet)
 
     def getRay(self, request):
         rayID = request.cookies.get(RAY_NAME)

@@ -24,9 +24,11 @@ class FullChallange:
             self.ray.score = score
             self.ray.scoreLogs = logs
             
-            print(data)
+            print('----------')
+            print(self.ray.ip)
             print(score)
             print(logs)
+            print('----------')
             
             if score >= 100:
                 self.ray.status = Status.BLOCKED
@@ -39,7 +41,7 @@ class FullChallange:
                 
                 return JSONResponse({'ok': True})
         else:
-            return Response('<script>' + script.code + '</script>') 
+            return Response('<script>' + script.code + '</script>', 403) 
                 
     def getScript(self):
         script = Script()
@@ -146,12 +148,6 @@ class FullChallange:
             reasons.append(f"Too few system fonts: {len(fonts)}")
         
         return score, reasons
-    
-    def _getScript(self, consts):
-        script = FULL_CHALLANGE_SCRIPT
-        for k, v in consts.items():
-            script = script.replace('{{' + k + '}}', v)
-        return script
     
 class Script:
     VARIABLES = [

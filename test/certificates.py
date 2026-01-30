@@ -1,3 +1,5 @@
+# uv run -m test.certificates
+
 import app.haproxy as haproxy
 
 hap = haproxy.HAProxy(None)

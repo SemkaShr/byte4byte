@@ -52,6 +52,8 @@ rayGroup.whitelistAdd(
     '54.187.216.72' # STRIPE
 )
 
+rayGroup.whitelistAdd(*config.SEARCH_SYSTEMS_BOT) # Search Systems
+
 rayGroupDev = RayGroup('dev')
 point = Endpoint('captcha.qwertyx.host', 'https://94.198.55.226/', rayGroupDev)
 router.addEndpoint(point)

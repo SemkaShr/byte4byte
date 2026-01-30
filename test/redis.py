@@ -1,3 +1,5 @@
+# uv run -m test.redis
+
 from config import REDIS
 
 # REDIS.set('test', 'test', 10)

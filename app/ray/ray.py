@@ -1,7 +1,9 @@
 from enum import Enum
-from config import REDIS, RAY_LIFETIME, JA4_KEY_DETECT, BOT_USERAGENT_KEYWORDS, BOT_EXCLUDE
+from config import REDIS, RAY_LIFETIME, JA4_KEY_DETECT, BOT_USERAGENT_KEYWORDS
 import json
 import pprint
+import time
+import ipaddress
 
 class Ray:
     def __init__(self, group, id = None, request = None):
@@ -17,6 +19,7 @@ class Ray:
         self.savedScore = None
         self.savedScoreLogs = None
         self.verifyLogs = None
+        self.createTime = time.time_ns()
         
         self.appAccuracy = None
 
@@ -45,6 +48,7 @@ class Ray:
         self.savedScore = data.get('score', None)
         self.savedScoreLogs = data.get('scoreLogs', None)
         self.fullChallangeID = data.get('fullChallangeID', None)
+        self.createTime = data.get('createTime', time.time_ns())
         self.data = data
     
     def dump(self):
@@ -56,6 +60,7 @@ class Ray:
             'appAccuracy': self.appAccuracy,
             'fullChallangeID': self.fullChallangeID,
             'verifyLogs': self.verifyLogs,
+            'createTime': self.createTime,
             'request': {
                 'ip': self.ip,
                 'user-agent': self.userAgent,
@@ -70,11 +75,13 @@ class Ray:
         pp = pprint.PrettyPrinter(indent=4)
         
         self.verifyLogs = []
-        if self.ip in self.group.whitelist:
-            self.status = Status.VERFIED
-            self.verifyLogs.append('IP in whitelist')
-            self.save()
-            return self.status
+        ip = ipaddress.ip_address(self.ip)
+        for subnet in self.group.whitelist:
+            if ip in subnet:
+                self.status = Status.VERFIED
+                self.verifyLogs.append('IP in whitelist')
+                self.save()
+                return self.status
         
         if self.data is not None and self.request is not None:
             if self.data['request']['ip'] != self.ip or self.data['request']['user-agent'] != self.userAgent:
@@ -110,18 +117,11 @@ class Ray:
                         self.status = Status.JS_CHALLANGE
                         self.verifyLogs.append('Normal JA4 App accuracy. Set status to JS CHALLANGE')
             else:
-                bot = None
-                ua = self.userAgent.lower()
-                for word in BOT_EXCLUDE:
-                    if word in ua:
-                        bot = False
+                bot = False
+                for word in BOT_USERAGENT_KEYWORDS:
+                    if word in self.userAgent:
+                        bot = True
                         break
-                if bot == None:
-                    bot = False
-                    for word in BOT_USERAGENT_KEYWORDS:
-                        if word in self.userAgent:
-                            bot = True
-                            break
                 if bot == True:
                     self.status = Status.BLOCKED
                     self.verifyLogs.append('Bot detected in User-Agent. Set status to Blocked')
@@ -129,15 +129,16 @@ class Ray:
                     self.status = Status.FULL_JS_CHALLANGE
                     self.verifyLogs.append('No JA4 App found, No bot detected. Changed status to FULL_JS_CHALLANGE')
             
-            if self.status == Status.BLOCKED:
-                pp.pprint(self.request.url.path)
-                pp.pprint(self.dump())
+        # if self.status == Status.BLOCKED or self.status == Status.FULL_JS_CHALLANGE:
+        #     pp.pprint(self.request.url.path)
+        #     pp.pprint(self.dump())
         
         # if self.status == Status.UNVERFIED:
-        if self.group.name == 'dev' and self.status not in [Status.VERFIED]:
-            self.status = Status.FULL_JS_CHALLANGE
-        else:
-            self.status = Status.VERFIED
+        # if self.group.name == 'dev' and self.status not in [Status.VERFIED]:
+        #     if self.status != Status.BLOCKED:
+        #         self.status = Status.FULL_JS_CHALLANGE
+        # else:
+        #     self.status = Status.VERFIED
         self.save()
 
         return self.status

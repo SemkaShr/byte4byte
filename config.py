@@ -2,6 +2,8 @@ from pathlib import Path
 import os
 import redis
 import javascript
+import json
+from minify_html import minify
 
 PID = os.getpid()
 REDIS = redis.Redis(host='localhost', port=6379, db=0)
@@ -10,8 +12,11 @@ RAY_LEN = 256
 RAY_LEN_SHORT = 12
 RAY_LIFETIME = 1800
 RAY_NAME = 'byte4byte.auth'
+
 ASSETS_PATH = Path.cwd() / 'app' / 'assets'
 ASSETS_PATH.mkdir(parents=True, exist_ok=True)
+RESOURCES_PATH = Path.cwd() / 'resources'
+RESOURCES_PATH.mkdir(parents=True, exist_ok=True)
 
 FULL_CHALLANGE_SCRIPT = (ASSETS_PATH / 'full_challange.js').read_text()
 FULL_CHALLANGE_SCRIPT_AMOUNT = 20
@@ -19,11 +24,16 @@ FULL_CHALLANGE_SCRIPT_LIFETIME = 180 # Hint: Do not set less then 90s
 
 OBFUSCATOR_JS = javascript.require('./node_modules/javascript-obfuscator/dist/index.js')
 
-PAGE_503 = (ASSETS_PATH / '503.html').read_text()
-PAGE_502 = (ASSETS_PATH / '502.html').read_text()
+PAGE_503 = minify((ASSETS_PATH / '503.html').read_text(), minify_css=True, minify_js=True)
+PAGE_502 = minify((ASSETS_PATH / '502.html').read_text(), minify_css=True, minify_js=True)
+PAGE_403 = minify((ASSETS_PATH / '403.html').read_text(), minify_css=True, minify_js=True)
 
 JA4_KEY_DETECT = '<<BOT>>'
 APP_HEADERS = ['x-forwarded-for', 'x-ja4-app', 'x-ja4-raw', 'x-ja4-fingerprint']
+
+SEARCH_SYSTEMS_BOT = []
+SEARCH_SYSTEMS_BOT.extend(json.loads((RESOURCES_PATH / 'googlebot_ips.json').read_text())) # YandexBot IPS
+SEARCH_SYSTEMS_BOT.extend(json.loads((RESOURCES_PATH / 'yandexbot_ips.json').read_text())) # GoogleBot IPS
 
 BOT_USERAGENT_KEYWORDS = []
 BOT_USERAGENT_KEYWORDS.extend([
@@ -47,8 +57,6 @@ BOT_USERAGENT_KEYWORDS.extend([
     'download', 'printer', 'router', 'camera', 'phillips hue', 'vpn', 'cisco', 'proxy', 'image',
     'office', 'fetcher', 'feed', 'photon', 'alittle client'
 ]) # Random bots
-
-BOT_EXCLUDE = ['google', 'yandex'] # Bots to exclude. Only works with User-Agent
 
 import logging
 def getLogger(name):
