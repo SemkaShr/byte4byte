@@ -157,7 +157,7 @@ async function invisibleReload() {
 
     async function send() {
         data = await collectAllSignals();
-        fetch("/{{SCRIPT_HASH_ID}}", {
+        fetch("{{SCRIPT_ENDPOINT}}", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: await encrypt(JSON.stringify(data))

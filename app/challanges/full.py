@@ -1,14 +1,12 @@
 from fastapi.responses import Response, JSONResponse
-from config import FULL_CHALLANGE_SCRIPT, OBFUSCATOR_JS, REDIS, FULL_CHALLANGE_SCRIPT_AMOUNT, FULL_CHALLANGE_SCRIPT_LIFETIME
+from config import FULL_CHALLANGE_SCRIPT, REDIS, FULL_CHALLANGE_SCRIPT_AMOUNT, FULL_CHALLANGE_SCRIPT_LIFETIME
 from app.ray.ray import Status
 
-import hashlib
 import time
 import random
-import string
 import json
-import base64
-from Crypto.Cipher import AES
+
+from app.challanges import Script as BaseScript
 
 class FullChallange:
     def __init__(self, ray):
@@ -16,7 +14,7 @@ class FullChallange:
     
     async def getResponse(self):
         script = self.getScript()
-        if self.ray.request.url.path == '/' + script.hash and self.ray.request.method == 'POST':
+        if self.ray.request.url.path == script.endpoint:
             body = await self.ray.request.body()
             data = script.decrypt(body)
             
@@ -41,7 +39,7 @@ class FullChallange:
                 
                 return JSONResponse({'ok': True})
         else:
-            return Response('<script>' + script.code + '</script>', 403) 
+            return Response('<script>' + script.getCode() + '</script>', 403) 
                 
     def getScript(self):
         script = Script()
@@ -58,14 +56,14 @@ class FullChallange:
             scriptKey = None
             for key in keys:
                 if REDIS.ttl(key) > FULL_CHALLANGE_SCRIPT_LIFETIME / 2:
-                    scriptKey = key
+                    scriptKey = key.decode()
                     break
                 
             if scriptKey is not None:
                 scriptID = scriptKey.split(':')[-1]
                 self.ray.fullChallangeID = scriptID
                 self.ray.save()
-                script.load(scriptID, REDIS.get(scriptKey))
+                script.load(scriptID, json.loads(REDIS.get(scriptKey)))
                 return script
         
         script.generate()
@@ -149,7 +147,7 @@ class FullChallange:
         
         return score, reasons
     
-class Script:
+class Script(BaseScript):
     VARIABLES = [
         'CANVAS',
         'BATTERY',
@@ -180,99 +178,9 @@ class Script:
         'PLATFORM',
         'USERAGENT'
     ]
-    
-    def __init__(self):
-        self.code = None
-        self.rawCode = None
-        self.varNames = None
-        
-    def load(self, key, data):
-        if len(key) != 32:
-            return False
-        self.encryptionKey = key
-        self.hash = hashlib.sha256(self.encryptionKey.encode()).hexdigest()
-        
-        self.code = data.get('code', None)
-        self.varNames = data.get('vars', None)
-        
-        return self
-    
-    def decrypt(self, data):
-        encrypted = base64.b64decode(data)
-    
-        cipher = AES.new(
-            self.encryptionKey.encode()[:32], 
-            AES.MODE_CBC, 
-            iv=bytes(16)
-        )
-
-        decrypted = cipher.decrypt(encrypted)
-        padding_length = decrypted[-1]
-        decrypted = decrypted[:-padding_length]
-        
-        return json.loads(decrypted.decode())
-
-            
-    def dump(self):
-        return {
-            'code': self.code,
-            'vars': self.varNames
-        }
-        
-    def getCode(self):
-        if self.code == None:
-            self.varNames = self._genNames()
-        
-            for i, key in enumerate(self.VARIABLES):
-                self.rawCode = self.rawCode.replace('{{' + str(key) + '}}', self.varNames[i])
-                
-            self.rawCode = self.rawCode.replace('{{SCRIPT_HASH_ID}}', self.hash)
-            self.rawCode = self.rawCode.replace('{{SCRIPT_KEY}}', self.encryptionKey)
-            
-            self.code = OBFUSCATOR_JS.obfuscate(self.rawCode, {
-                'renameGlobals': True,
-                'compact': True,
-                'renameProperties': False,
-                'splitStrings': False,
-                'numbersToExpressions': True,
-                'transformObjectKeys': False,
-                'reservedNames': ['iv', 'Uint8Array'],
-                'selfDefending': True
-            }).getObfuscatedCode()
-        return self.code
         
     def save(self):
         REDIS.set('challanges:full:' + str(self.encryptionKey), json.dumps(self.dump()), FULL_CHALLANGE_SCRIPT_LIFETIME)
     
-    def generate(self):
-        self.encryptionKey = self._genString(32)
-        self.hash = hashlib.sha256(self.encryptionKey.encode()).hexdigest()
-        self.rawCode = FULL_CHALLANGE_SCRIPT
-        self.code = self.getCode()
-        self.save()
-        return self
-    
-    def get(self, key):
-        if self.varNames == None:
-            return None
-        return self.varNames[self.VARIABLES.index(key)]
-    
-    def _genNames(self):
-        varLen = max(len(self.VARIABLES) // len(string.ascii_letters), 1)
-        names = []
-        for i in range(len(self.VARIABLES)):
-            name = ''
-            n = i
-            for _ in range(varLen):
-                n, idx = divmod(n, len(string.ascii_letters))
-                name += string.ascii_letters[idx]
-            names.append(name)
-            
-        random.seed(self.encryptionKey)
-        random.shuffle(names)
-            
-        return names
-    
-    def _genString(self, length):
-        random.seed(time.time_ns())
-        return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
+    def getRawCode(self):
+        return FULL_CHALLANGE_SCRIPT

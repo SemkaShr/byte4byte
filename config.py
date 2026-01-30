@@ -22,6 +22,11 @@ FULL_CHALLANGE_SCRIPT = (ASSETS_PATH / 'full_challange.js').read_text()
 FULL_CHALLANGE_SCRIPT_AMOUNT = 20
 FULL_CHALLANGE_SCRIPT_LIFETIME = 180 # Hint: Do not set less then 90s
 
+INJECT_CHALLANGE_SCRIPT = (ASSETS_PATH / 'inject_challange.js').read_text()
+INJECT_CHALLANGE_SCRIPT_LIFETIME = 180
+INJECT_CHALLANGE_SCRIPT_AMOUNT = 20
+INJECT_CHALLANGE_UNVERFIED_TIME_LIMIT = 20 # seconds
+
 OBFUSCATOR_JS = javascript.require('./node_modules/javascript-obfuscator/dist/index.js')
 
 PAGE_503 = minify((ASSETS_PATH / '503.html').read_text(), minify_css=True, minify_js=True)

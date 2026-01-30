@@ -13,6 +13,7 @@ class Ray:
         self.checker = {}
         
         self.fullChallangeID = None
+        self.injectChallangeID = None
         
         self.score = None
         self.scoreLogs = None
@@ -33,14 +34,6 @@ class Ray:
             self.ja4_fingerprint = request.headers.get('X-JA4-Fingerprint')
             self.ja4_app = request.headers.get('X-JA4-App')
             self.ja4_raw = request.headers.get('X-JA4-Raw')
-            
-            
-            # if len(request.headers.get('x-ja4-app')) == 0 and not request.client.host.startswith('188.127.241.'):
-            #     print(request.client.host)
-            #     print(request.headers.get('user-agent'))
-
-            # if request.headers['host'] == 'captcha.qwertyx.host':
-            #     getLogger('debug').info(request.headers.get(''))
 
     def load(self, data):
         self.id = data['id']
@@ -48,6 +41,7 @@ class Ray:
         self.savedScore = data.get('score', None)
         self.savedScoreLogs = data.get('scoreLogs', None)
         self.fullChallangeID = data.get('fullChallangeID', None)
+        self.injectChallangeID = data.get('injectChallangeID', None)
         self.createTime = data.get('createTime', time.time_ns())
         self.data = data
     
@@ -59,6 +53,7 @@ class Ray:
             'scoreLogs': self.scoreLogs,
             'appAccuracy': self.appAccuracy,
             'fullChallangeID': self.fullChallangeID,
+            'injectChallangeID': self.injectChallangeID,
             'verifyLogs': self.verifyLogs,
             'createTime': self.createTime,
             'request': {
@@ -97,7 +92,11 @@ class Ray:
         if self.userAgent == None:
             self.status = Status.BLOCKED
             self.verifyLogs.append('User agent is None')
-           
+        
+        
+        if self.status == Status.UNVERFIED and self.group.name == 'dev':
+            self.status = Status.JS_CHALLANGE
+        
         # JA4 / UserAgent Filter 
         if self.status == Status.UNVERFIED:
             if len(self.ja4_app) > 0:
@@ -128,6 +127,7 @@ class Ray:
                 else:
                     self.status = Status.FULL_JS_CHALLANGE
                     self.verifyLogs.append('No JA4 App found, No bot detected. Changed status to FULL_JS_CHALLANGE')
+            
             
         # if self.status == Status.BLOCKED or self.status == Status.FULL_JS_CHALLANGE:
         #     pp.pprint(self.request.url.path)

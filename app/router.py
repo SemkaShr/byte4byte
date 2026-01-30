@@ -26,11 +26,10 @@ class Router:
                     if handle.status in [EndpointResponseStatus.VERFIED, EndpointResponseStatus.JS_CHALLANGE]:
                         if handle.status == EndpointResponseStatus.JS_CHALLANGE:
                             challange = InjectChallange(handle.ray)
-                            if request.url.path == '/' + challange.getScriptFilename():
-                                return Response(challange.getScriptCode())
+                            if request.url.path == '/' + challange.script.getScriptFilename():
+                                return Response(challange.getScriptCode(), media_type='text/javascript')
                         
                         body = await request.body()
-
                         try:
                             async with httpx.AsyncClient(follow_redirects=False, verify=False, cookies=request.cookies) as client:
                                 endpointResponse = await client.request(
