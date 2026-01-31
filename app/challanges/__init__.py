@@ -1,12 +1,12 @@
 import hashlib
 import time
 import base64
-from Crypto.Cipher import AES
 import json
 import string
 import random
 
 from config import OBFUSCATOR_JS
+from Crypto.Cipher import AES
 
 class Script:
     def __init__(self):

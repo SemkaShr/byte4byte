@@ -1,12 +1,11 @@
 from fastapi.responses import Response, JSONResponse
 from config import FULL_CHALLANGE_SCRIPT, REDIS, FULL_CHALLANGE_SCRIPT_AMOUNT, FULL_CHALLANGE_SCRIPT_LIFETIME
 from app.ray.ray import Status
+from app.challanges import Script as BaseScript
 
 import time
 import random
 import json
-
-from app.challanges import Script as BaseScript
 
 class FullChallange:
     def __init__(self, ray):
@@ -34,7 +33,7 @@ class FullChallange:
                 
                 return JSONResponse({'ok': False})
             else:
-                self.ray.status = Status.VERFIED
+                self.ray.status = Status.JS_CHALLANGE
                 self.ray.save()
                 
                 return JSONResponse({'ok': True})
@@ -93,11 +92,11 @@ class FullChallange:
             bad_renderers = ['swiftshader', 'llvmpipe', 'virtualbox', 'vmware', 'software adapter', 'mesa', 'microsoft basic render driver']
             for bad in bad_renderers:
                 if bad in renderer or bad in vendor:
-                    score += 100
+                    score += 90
                     reasons.append(f"Detected VM/Headless Renderer: {renderer}")
                     break
         else:
-            score += 100
+            score += 50
             reasons.append(f"WebGL is undefiend")
             
         if data.get(script.get('WEBDRIVER')) is True:
@@ -114,7 +113,7 @@ class FullChallange:
             reasons.append("Window outer dimensions are 0 (Headless)")
         
         if data.get(script.get('SCREEN_IW')) == data.get(script.get('SCREEN_OW')) and data.get(script.get('SCREEN_IH')) == data.get(script.get('SCREEN_OH')):
-            score += 40
+            score += 15
             reasons.append("No browser chrome detected (Inner == Outer size)")
         
         if self.ray.userAgent != data.get(script.get('USERAGENT'), ''):
@@ -127,10 +126,10 @@ class FullChallange:
             if 'mobile' in ua or 'android' in ua or 'iphone' in ua:
                 score += 50
                 reasons.append("Mobile User-Agent but Battery API not supported")
-        elif isinstance(battery, dict):
-            if battery.get(script.get('BATTERY_LEVEL')) == 1.0 and battery.get(script.get('BATTERY_CHARGING')) is True and battery.get(script.get('BATTERY_CHARGING_TIME')) == 0:
-                score += 15
-                reasons.append("Suspicious battery state (Always 100% charging)")
+        # elif isinstance(battery, dict):
+        #     if battery.get(script.get('BATTERY_LEVEL')) == 1.0 and battery.get(script.get('BATTERY_CHARGING')) is True and battery.get(script.get('BATTERY_CHARGING_TIME')) == 0:
+        #         score += 0
+        #         reasons.append("Suspicious battery state (Always 100% charging)")
         
         if data.get(script.get('PLUGINS')) == 0:
             score += 30

@@ -2,21 +2,43 @@ import random
 import time
 import string
 import json
+from pathlib import Path
 
 from config import REDIS, INJECT_CHALLANGE_SCRIPT, INJECT_CHALLANGE_UNVERFIED_TIME_LIMIT, INJECT_CHALLANGE_SCRIPT_LIFETIME, INJECT_CHALLANGE_SCRIPT_AMOUNT
-
 from app.challanges import Script as BaseScript
+from fastapi.responses import JSONResponse
 
 class InjectChallange:
     def __init__(self, ray):
         self.ray = ray
         self.script = self.getScript()
         
+    async def getResponse(self):
+        body = await self.ray.request.body()
+        data = self.script.decrypt(body)
+        
+        event = data.get('event')
+        session = data.get('session').replace('/', '').replace('\\', '').replace('.', '')
+        
+        file = Path('./sessions/') / (str(self.ray.getShortID() + '.' + str(session)) + '.json')
+        if file.exists():
+            content = json.loads(file.read_text())
+        else:
+            content = {'data': [], 'ray': self.ray.dump()}
+        
+        content['data'].append(data)
+        file.write_text(json.dumps(content))
+        
+        if event == 'session_end':
+            print('Got full session: ' + str(file))
+
+        return JSONResponse({'ok': True})
+        
     def getInjectCode(self):
         return ('<script src="/' + str(self.script.getScriptFilename()) + '"></script>').encode()
     
     def getScriptCode(self):
-        return self.script.getCode()
+        return 'const SESSION_ID="' + self.getString(time.time_ns(), 32) + '";' + self.script.getCode()
     
     def getScript(self):
         script = Script()
@@ -60,3 +82,5 @@ class Script(BaseScript):
     
     def getRawCode(self):
         return INJECT_CHALLANGE_SCRIPT
+    
+    

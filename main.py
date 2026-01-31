@@ -1,9 +1,10 @@
 from fastapi import FastAPI
-import uvicorn
+
 import app.haproxy as haproxy
 from app.router import Router
 from app.endpoint import Endpoint
 from app.ray.group import Group as RayGroup
+
 import config
 
 logger = config.getLogger('b4b.main')
@@ -27,6 +28,7 @@ point = Endpoint('systems.qwertyx.host', 'https://94.198.55.226/', rayGroup)
 router.addEndpoint(point)
 
 rayGroup.whitelistAdd(
+    '88.147.152.98', # Normal user, but blocked
     '188.127.241.229', 
     '188.127.241.230', 
     '188.127.241.231',

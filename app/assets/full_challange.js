@@ -1,50 +1,50 @@
-async function invisibleReload() {
-    const url = window.location.href;
+// async function invisibleReload() {
+//     const url = window.location.href;
 
-    const response = await fetch(url, {
-        method: 'GET',
-        credentials: 'same-origin',
-        cache: 'no-store'
-    });
+//     const response = await fetch(url, {
+//         method: 'GET',
+//         credentials: 'same-origin',
+//         cache: 'no-store'
+//     });
 
-    const htmlText = await response.text();
+//     const htmlText = await response.text();
 
-    const parser = new DOMParser();
-    const newDoc = parser.parseFromString(htmlText, 'text/html');
+//     const parser = new DOMParser();
+//     const newDoc = parser.parseFromString(htmlText, 'text/html');
 
-    document.head.innerHTML = '';
+//     document.head.innerHTML = '';
 
-    Array.from(newDoc.head.children).forEach(node => {
-        document.head.appendChild(node.cloneNode(true));
-    });
+//     Array.from(newDoc.head.children).forEach(node => {
+//         document.head.appendChild(node.cloneNode(true));
+//     });
 
-    const scrollX = window.scrollX;
-    const scrollY = window.scrollY;
+//     const scrollX = window.scrollX;
+//     const scrollY = window.scrollY;
 
-    document.body.innerHTML = '';
+//     document.body.innerHTML = '';
 
-    Array.from(newDoc.body.children).forEach(node => {
-        document.body.appendChild(node.cloneNode(true));
-    });
+//     Array.from(newDoc.body.children).forEach(node => {
+//         document.body.appendChild(node.cloneNode(true));
+//     });
 
-    window.scrollTo(scrollX, scrollY);
+//     window.scrollTo(scrollX, scrollY);
 
-    const scripts = document.querySelectorAll('script');
+//     const scripts = document.querySelectorAll('script');
 
-    scripts.forEach(oldScript => {
-        const newScript = document.createElement('script');
+//     scripts.forEach(oldScript => {
+//         const newScript = document.createElement('script');
 
-        Array.from(oldScript.attributes).forEach(attr => {
-            newScript.setAttribute(attr.name, attr.value);
-        });
+//         Array.from(oldScript.attributes).forEach(attr => {
+//             newScript.setAttribute(attr.name, attr.value);
+//         });
 
-        if (oldScript.textContent) {
-            newScript.textContent = oldScript.textContent;
-        }
+//         if (oldScript.textContent) {
+//             newScript.textContent = oldScript.textContent;
+//         }
 
-        oldScript.replaceWith(newScript);
-    });
-}
+//         oldScript.replaceWith(newScript);
+//     });
+// }
 
 (function() {
     function getBotVars() {
@@ -159,9 +159,11 @@ async function invisibleReload() {
         data = await collectAllSignals();
         fetch("{{SCRIPT_ENDPOINT}}", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
             body: await encrypt(JSON.stringify(data))
-        }).then(r => { invisibleReload() });
+        }).then(r => { 
+            // invisibleReload() 
+            window.location.reload()
+        });
     }
 
     window.addEventListener('load', send);

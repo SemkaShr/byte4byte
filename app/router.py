@@ -28,6 +28,8 @@ class Router:
                             challange = InjectChallange(handle.ray)
                             if request.url.path == '/' + challange.script.getScriptFilename():
                                 return Response(challange.getScriptCode(), media_type='text/javascript')
+                            elif request.url.path == challange.script.getScriptEndpoint():
+                                return await challange.getResponse()
                         
                         body = await request.body()
                         try:
@@ -50,12 +52,10 @@ class Router:
                             contentLength = None
                         
                         if handle.status == EndpointResponseStatus.JS_CHALLANGE:
-                            if 'text/html' in endpointResponse.headers.get('content-type', 'text/html'):
-                                if handle.ray.group.name == 'dev':
-                                    injectCode = InjectChallange(handle.ray).getInjectCode()
-                                    content += injectCode
-                                    if contentLength != None:
-                                        contentLength += len(injectCode)
+                            if 'text/html' in endpointResponse.headers.get('content-type', 'text/html') and not content.startswith(b'{'):
+                                # if handle.ray.group.name == 'dev':
+                                injectCode = InjectChallange(handle.ray).getInjectCode()
+                                content += injectCode
                             else:
                                 pass # Full Challange
 
@@ -68,8 +68,8 @@ class Router:
                         for cookie in [v.decode('utf-8') for k, v in endpointResponse.headers.raw if k.lower() == b'set-cookie']:
                             response.headers.append('set-cookie', cookie)
                             
-                        if contentLength != None:
-                            response.headers['content-length'] = str(contentLength)
+                        # if contentLength != None:
+                        response.headers['content-length'] = str(len(content))
                     elif handle.status == EndpointResponseStatus.FULL_JS_CHALLANGE:
                         response = await FullChallange(handle.ray).getResponse()
                     elif handle.status == EndpointResponseStatus.BLOCKED:

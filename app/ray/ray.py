@@ -85,9 +85,7 @@ class Ray:
             
             if 'ja4_fingerprint' in self.data['request'] and self.ja4_fingerprint[:6] + 'XX' + self.ja4_fingerprint[8:23] != self.data['request']['ja4_fingerprint'][:6] + 'XX' + self.data['request']['ja4_fingerprint'][8:23]:
                 self.status = Status.UNVERFIED
-                self.verifyLogs.append('Request JA4 fingerprint changes. Status set to Unverfied')
-                # self.status = Status.FULL_JS_CHALLANGE
-                # return self.status
+                self.verifyLogs.append('Request JA4 fingerprint changed. Status set to Unverfied')
                 
         if self.userAgent == None:
             self.status = Status.BLOCKED
@@ -95,7 +93,7 @@ class Ray:
         
         
         if self.status == Status.UNVERFIED and self.group.name == 'dev':
-            self.status = Status.JS_CHALLANGE
+            self.status = Status.FULL_JS_CHALLANGE
         
         # JA4 / UserAgent Filter 
         if self.status == Status.UNVERFIED:
@@ -113,7 +111,7 @@ class Ray:
                         self.status = Status.FULL_JS_CHALLANGE
                         self.verifyLogs.append('Medium JA4 App accuracy. Set status to FULL JS CHALLANGE')
                     else:
-                        self.status = Status.JS_CHALLANGE
+                        self.status = Status.FULL_JS_CHALLANGE
                         self.verifyLogs.append('Normal JA4 App accuracy. Set status to JS CHALLANGE')
             else:
                 bot = False
@@ -127,7 +125,9 @@ class Ray:
                 else:
                     self.status = Status.FULL_JS_CHALLANGE
                     self.verifyLogs.append('No JA4 App found, No bot detected. Changed status to FULL_JS_CHALLANGE')
-            
+        
+        # if self.status == Status.JS_CHALLANGE:
+        #     self.status = Status.FULL_JS_CHALLANGE
             
         # if self.status == Status.BLOCKED or self.status == Status.FULL_JS_CHALLANGE:
         #     pp.pprint(self.request.url.path)
