@@ -49,8 +49,8 @@ class Ray:
         return {
             'id': self.id,
             'status': self.status.value,
-            'score': self.score,
-            'scoreLogs': self.scoreLogs,
+            'score': self.score if self.score is not None else self.savedScore,
+            'scoreLogs': self.scoreLogs if self.scoreLogs is not None else self.savedScoreLogs,
             'appAccuracy': self.appAccuracy,
             'fullChallangeID': self.fullChallangeID,
             'injectChallangeID': self.injectChallangeID,

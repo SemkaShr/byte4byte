@@ -52,7 +52,7 @@ class Router:
                             contentLength = None
                         
                         if handle.status == EndpointResponseStatus.JS_CHALLANGE:
-                            if 'text/html' in endpointResponse.headers.get('content-type', 'text/html') and not content.startswith(b'{'):
+                            if 'text/html' in endpointResponse.headers.get('content-type', 'text/html') and not content.startswith((b'{', b'[')):
                                 # if handle.ray.group.name == 'dev':
                                 injectCode = InjectChallange(handle.ray).getInjectCode()
                                 content += injectCode

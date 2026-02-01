@@ -26,6 +26,10 @@ class InjectChallange:
         else:
             content = {'data': [], 'ray': self.ray.dump()}
         
+        if(event == 'session_end'):
+            if len(content['data']) > 0 and content['data'][-1]['event'] == 'session_end':
+                return JSONResponse({'ok': True})
+            
         content['data'].append(data)
         file.write_text(json.dumps(content))
         

@@ -76,7 +76,7 @@
     }
 
     function getJitPerformance() {
-        const start = performance.now();
+        const start = time.now();
         let val = 0;
         for (let i = 0; i < 2000000; i++) {
             val += Math.sqrt(i) * Math.sin(i);

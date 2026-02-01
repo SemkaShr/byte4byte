@@ -28,7 +28,7 @@ point = Endpoint('systems.qwertyx.host', 'https://94.198.55.226/', rayGroup)
 router.addEndpoint(point)
 
 rayGroup.whitelistAdd(
-    '88.147.152.98', # Normal user, but blocked
+    '88.147.152.98', '146.185.240.196', '78.111.155.219', # Normal user, but blocked
     '188.127.241.229', 
     '188.127.241.230', 
     '188.127.241.231',

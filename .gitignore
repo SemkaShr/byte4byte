@@ -7,3 +7,4 @@ __pycache__/
 node_modules/
 tmp/
 latest.log
+sessions/
