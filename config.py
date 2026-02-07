@@ -2,10 +2,13 @@ from pathlib import Path
 import os
 import redis
 import json
+import joblib
 from minify_html import minify
 
 PID = os.getpid()
 REDIS = redis.Redis(host='localhost', port=6379, db=0)
+
+MODEL = joblib.load('model.dump')
 
 RAY_LEN = 256
 RAY_LEN_SHORT = 12
