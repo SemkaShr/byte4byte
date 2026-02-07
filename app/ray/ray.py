@@ -129,19 +129,6 @@ class Ray:
                     self.status = Status.FULL_JS_CHALLANGE
                     self.verifyLogs.append('No JA4 App found, No bot detected. Changed status to FULL_JS_CHALLANGE')
         
-        # if self.status == Status.JS_CHALLANGE:
-        #     self.status = Status.FULL_JS_CHALLANGE
-            
-        # if self.status == Status.BLOCKED or self.status == Status.FULL_JS_CHALLANGE:
-        #     pp.pprint(self.request.url.path)
-        #     pp.pprint(self.dump())
-        
-        # if self.status == Status.UNVERFIED:
-        # if self.group.name == 'dev' and self.status not in [Status.VERFIED]:
-        #     if self.status != Status.BLOCKED:
-        #         self.status = Status.FULL_JS_CHALLANGE
-        # else:
-        #     self.status = Status.VERFIED
         self.save()
 
         return self.status
