@@ -12,7 +12,7 @@ RAY_LEN_SHORT = 12
 RAY_LIFETIME = 1800
 RAY_NAME = 'byte4byte.auth'
 
-ASSETS_PATH = Path.cwd() / 'app' / 'assets'
+ASSETS_PATH = Path.cwd() / 'assets'
 ASSETS_PATH.mkdir(parents=True, exist_ok=True)
 RESOURCES_PATH = Path.cwd() / 'resources'
 RESOURCES_PATH.mkdir(parents=True, exist_ok=True)
