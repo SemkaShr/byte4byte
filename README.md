@@ -16,3 +16,9 @@ uv sync
 ```bash
 npm install --save-dev javascript-obfuscator
 ```
+```bash
+# Configure HAProxy config
+```
+```bash
+./run.sh
+```
