@@ -5,7 +5,7 @@ import json
 import string
 import random
 
-from config import OBFUSCATOR_JS
+from config import getObfuscator
 from Crypto.Cipher import AES
 
 class Script:
@@ -58,16 +58,28 @@ class Script:
             self.rawCode = self.rawCode.replace('{{SCRIPT_ENDPOINT}}', self.endpoint)
             self.rawCode = self.rawCode.replace('{{SCRIPT_KEY}}', self.encryptionKey)
             
-            self.code = OBFUSCATOR_JS.obfuscate(self.rawCode, {
-                'renameGlobals': True,
-                'compact': True,
-                'renameProperties': False,
-                'splitStrings': False,
-                'numbersToExpressions': True,
-                'transformObjectKeys': False,
-                'reservedNames': ['iv', 'Uint8Array'],
-                'selfDefending': True
-            }).getObfuscatedCode()
+            success = False
+            renew = False
+            for _ in range(2):
+                try:
+                    self.code = getObfuscator(renew).obfuscate(self.rawCode, {
+                        'renameGlobals': True,
+                        'compact': True,
+                        'renameProperties': False,
+                        'splitStrings': False,
+                        'numbersToExpressions': True,
+                        'transformObjectKeys': False,
+                        'reservedNames': ['iv', 'Uint8Array'],
+                        'selfDefending': True
+                    }).getObfuscatedCode()
+                    success = True
+                    break
+                except Exception as e:
+                    renew = True
+
+            if success == False:
+                self.code = self.rawCode
+                
         return self.code
         
     def save(self):

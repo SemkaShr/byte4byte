@@ -28,10 +28,11 @@ class FullChallange:
             print('----------')
             
             if score >= 100:
-                self.ray.status = Status.BLOCKED
+                self.ray.status = Status.JS_CHALLANGE
+                self.ray.requestType = 'bot'
                 self.ray.save()
                 
-                return JSONResponse({'ok': False})
+                return JSONResponse({'ok': True})
             else:
                 self.ray.status = Status.JS_CHALLANGE
                 self.ray.save()
@@ -92,7 +93,7 @@ class FullChallange:
             bad_renderers = ['swiftshader', 'llvmpipe', 'virtualbox', 'vmware', 'software adapter', 'mesa', 'microsoft basic render driver']
             for bad in bad_renderers:
                 if bad in renderer or bad in vendor:
-                    score += 90
+                    score += 100
                     reasons.append(f"Detected VM/Headless Renderer: {renderer}")
                     break
         else:
@@ -105,7 +106,7 @@ class FullChallange:
             
         jit_time = data.get(script.get('JIT_PERFORMANCE'), 101)
         if jit_time > 100:
-            score += 15
+            score += 20
             reasons.append(f"Slow JS execution: {jit_time}ms")
             
         if data.get(script.get('SCREEN_OW')) == 0 or data.get(script.get('SCREEN_OH')) == 0:

@@ -17,24 +17,27 @@ class InjectChallange:
         body = await self.ray.request.body()
         data = self.script.decrypt(body)
         
-        event = data.get('event')
-        session = data.get('session').replace('/', '').replace('\\', '').replace('.', '')
-        
-        file = Path('./sessions/') / (str(self.ray.getShortID() + '.' + str(session)) + '.json')
-        if file.exists():
-            content = json.loads(file.read_text())
-        else:
-            content = {'data': [], 'ray': self.ray.dump()}
-        
-        if(event == 'session_end'):
-            if len(content['data']) > 0 and content['data'][-1]['event'] == 'session_end':
-                return JSONResponse({'ok': True})
+        try:
+            event = data.get('event')
+            session = data.get('session').replace('/', '').replace('\\', '').replace('.', '')
             
-        content['data'].append(data)
-        file.write_text(json.dumps(content))
-        
-        if event == 'session_end':
-            print('Got full session: ' + str(file))
+            file = Path('./sessions/') / (str(self.ray.getShortID() + '.' + str(session)) + '.json')
+            if file.exists():
+                content = json.loads(file.read_text())
+            else:
+                content = {'data': [], 'ray': self.ray.dump()}
+            
+            if(event == 'session_end'):
+                if len(content['data']) > 0 and content['data'][-1]['event'] == 'session_end':
+                    return JSONResponse({'ok': True})
+                
+            content['data'].append(data)
+            file.write_text(json.dumps(content))
+            
+            if event == 'session_end':
+                print('[' + self.ray.requestType + '] Got full session: ' + str(file))
+        except Exception as e:
+            pass
 
         return JSONResponse({'ok': True})
         

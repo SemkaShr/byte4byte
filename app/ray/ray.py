@@ -12,6 +12,8 @@ class Ray:
         self.group = group
         self.checker = {}
         
+        self.requestType = 'human'
+        
         self.fullChallangeID = None
         self.injectChallangeID = None
         
@@ -43,6 +45,7 @@ class Ray:
         self.fullChallangeID = data.get('fullChallangeID', None)
         self.injectChallangeID = data.get('injectChallangeID', None)
         self.createTime = data.get('createTime', time.time_ns())
+        self.requestType = data.get('requestType', self.requestType)
         self.data = data
     
     def dump(self):
@@ -56,6 +59,7 @@ class Ray:
             'injectChallangeID': self.injectChallangeID,
             'verifyLogs': self.verifyLogs,
             'createTime': self.createTime,
+            'requestType': self.requestType,
             'request': {
                 'ip': self.ip,
                 'user-agent': self.userAgent,
@@ -91,8 +95,7 @@ class Ray:
             self.status = Status.BLOCKED
             self.verifyLogs.append('User agent is None')
         
-        
-        if self.status == Status.UNVERFIED and self.group.name == 'dev':
+        if self.status not in [Status.JS_CHALLANGE, Status.FULL_JS_CHALLANGE]:
             self.status = Status.FULL_JS_CHALLANGE
         
         # JA4 / UserAgent Filter 

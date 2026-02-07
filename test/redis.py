@@ -8,3 +8,7 @@ from config import REDIS
 # print(REDIS.ttl('test'))
 
 # print(REDIS.keys('ray:dev:*'))
+
+for key in REDIS.keys('challanges:full:*'):
+    print(key)
+    print(REDIS.delete(key))

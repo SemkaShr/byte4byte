@@ -1,7 +1,6 @@
 from pathlib import Path
 import os
 import redis
-import javascript
 import json
 from minify_html import minify
 
@@ -26,8 +25,6 @@ INJECT_CHALLANGE_SCRIPT = (ASSETS_PATH / 'inject_challange.js').read_text()
 INJECT_CHALLANGE_SCRIPT_LIFETIME = 86400
 INJECT_CHALLANGE_SCRIPT_AMOUNT = 20
 INJECT_CHALLANGE_UNVERFIED_TIME_LIMIT = 20 # seconds
-
-OBFUSCATOR_JS = javascript.require('./node_modules/javascript-obfuscator/dist/index.js')
 
 PAGE_503 = minify((ASSETS_PATH / '503.html').read_text(), minify_css=True, minify_js=True)
 PAGE_502 = minify((ASSETS_PATH / '502.html').read_text(), minify_css=True, minify_js=True)
@@ -62,6 +59,13 @@ BOT_USERAGENT_KEYWORDS.extend([
     'download', 'printer', 'router', 'camera', 'phillips hue', 'vpn', 'cisco', 'proxy', 'image',
     'office', 'fetcher', 'feed', 'photon', 'alittle client'
 ]) # Random bots
+
+import javascript
+JS_OBFUSCATOR = javascript.require('./node_modules/javascript-obfuscator/dist/index.js')
+def getObfuscator(renew=False):
+    if renew:
+        JS_OBFUSCATOR = javascript.require('./node_modules/javascript-obfuscator/dist/index.js')
+    return JS_OBFUSCATOR
 
 import logging
 def getLogger(name):
