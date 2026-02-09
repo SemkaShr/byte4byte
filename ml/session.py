@@ -1,7 +1,11 @@
 import math
 
+import pandas as pd
+from config import MODEL
+
 class Session:
     def __init__(self, data=None):
+        self.label = None
         if data != None:
             self.usable = self.load(data)
     
@@ -72,18 +76,28 @@ class Session:
     
     def load(self, data):
         self.data = data['data']
-        if(len(self.data) <= 1 or len(self.data) > 10):
-            return False
         
         self.ip = data['ray']['request']['ip']
         self.score = data['ray']['score']
         self.scoreLogs = data['ray'].get('scoreLogs', [])
+        self.ja4Fingerprint = data['ray']['request']['ja4_fingerprint']
         self.userAgent = data['ray']['request']['user-agent']
         self.id = self.data[0]['session']
         self.rayID = data['ray']['id']
         self.label = data['ray'].get('requestType', 'human')
         
+        
+        if(len(self.data) <= 1 or len(self.data) > 10):
+            return False
+        
         if self.data[-1]['event'] == 'session_end' and self.data[-2]['event'] == 'session_end':
             self.data.pop(-1)
             
         return True
+    
+    def predict(self, data=None):
+        if data != None:
+            self.data = [data]
+        data = pd.DataFrame([self.getFeatures()]).drop('label', axis=1)
+        proba = MODEL.predict_proba(data)[0]
+        return proba

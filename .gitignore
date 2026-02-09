@@ -9,3 +9,4 @@ tmp/
 latest.log
 sessions/
 sessions*.tar.gz
+appConfig.py

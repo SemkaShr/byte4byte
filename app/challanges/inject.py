@@ -4,14 +4,17 @@ import string
 import json
 from pathlib import Path
 
-from config import REDIS, INJECT_CHALLANGE_SCRIPT, INJECT_CHALLANGE_UNVERFIED_TIME_LIMIT, INJECT_CHALLANGE_SCRIPT_LIFETIME, INJECT_CHALLANGE_SCRIPT_AMOUNT
+from config import REDIS, INJECT_CHALLANGE_SCRIPT, INJECT_CHALLANGE_UNVERFIED_TIME_LIMIT, INJECT_CHALLANGE_SCRIPT_LIFETIME, INJECT_CHALLANGE_SCRIPT_AMOUNT, getLogger
 from app.challanges import Script as BaseScript
 from fastapi.responses import JSONResponse
+
+from ml.session import Session
 
 class InjectChallange:
     def __init__(self, ray):
         self.ray = ray
         self.script = self.getScript()
+        self.logger = getLogger('b4b.challanges.inject')
         
     async def getResponse(self):
         body = await self.ray.request.body()
@@ -19,6 +22,8 @@ class InjectChallange:
         
         try:
             event = data.get('event')
+            if data['session'] == None:
+                return JSONResponse({'ok': False})
             session = data.get('session').replace('/', '').replace('\\', '').replace('.', '')
             
             file = Path('./sessions/') / (str(self.ray.getShortID() + '.' + str(session)) + '.json')
@@ -31,13 +36,17 @@ class InjectChallange:
                 if len(content['data']) > 0 and content['data'][-1]['event'] == 'session_end':
                     return JSONResponse({'ok': True})
                 
+                session = Session()
+                print('predict', session.predict(data))
+                print('ip', self.ray.ip)
+                
             content['data'].append(data)
             file.write_text(json.dumps(content))
             
             if event == 'session_end':
                 print('[' + self.ray.requestType + '] Got full session: ' + str(file))
         except Exception as e:
-            pass
+            self.logger.exception(e)
 
         return JSONResponse({'ok': True})
         
