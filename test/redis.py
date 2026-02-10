@@ -9,6 +9,6 @@ from config import REDIS
 
 # print(REDIS.keys('ray:dev:*'))
 
-for key in REDIS.keys('challanges:full:*'):
+for key in REDIS.keys('challenges:full:*'):
     print(key)
     print(REDIS.delete(key))

@@ -1,8 +1,8 @@
 from fastapi import Request
 from fastapi.responses import Response
 import httpx
-from app.challanges.full import FullChallange
-from app.challanges.inject import InjectChallange
+from app.challenges.full import FullChallange
+from app.challenges.inject import InjectChallange
 
 import config
 import hashlib

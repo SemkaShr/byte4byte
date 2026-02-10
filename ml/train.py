@@ -134,23 +134,47 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 
+# model = make_pipeline(
+#     StandardScaler(),
+#     XGBClassifier(
+#         n_estimators=600,
+#         max_depth=None,                 # ↓ чтобы не переобучаться
+#         min_child_weight=4,          # ↑ для борьбы с шумом
+#         learning_rate=0.03,          # ↓ smoother learning
+#         subsample=0.8,
+#         colsample_bytree=0.7,
+#         objective="binary:logistic",
+#         eval_metric="aucpr",         # важно при дисбалансе
+#         random_state=42,
+#         n_jobs=-1
+#     )
+# )
+
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
+from catboost import CatBoostClassifier
+
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    ExtraTreesClassifier,
+    GradientBoostingClassifier
+)
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+
 model = make_pipeline(
     StandardScaler(),
-    XGBClassifier(
+    LGBMClassifier(
         n_estimators=600,
-        max_depth=None,                 # ↓ чтобы не переобучаться
-        min_child_weight=4,          # ↑ для борьбы с шумом
-        learning_rate=0.03,          # ↓ smoother learning
+        learning_rate=0.03,
+        num_leaves=31,
         subsample=0.8,
         colsample_bytree=0.7,
-        objective="binary:logistic",
-        eval_metric="aucpr",         # важно при дисбалансе
+        objective="binary",
         random_state=42,
         n_jobs=-1
     )
 )
-
-
 
 model.fit(X_train, y_train)
 
