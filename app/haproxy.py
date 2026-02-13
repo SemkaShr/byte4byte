@@ -61,7 +61,7 @@ class HAProxy:
 
     def issue_certificate(self, domain: str, email: str = 'admin@swapl.io'):
         http_in = self.configuration.frontend('http_in')
-        http_in.remove_config('redirect', 'scheme https code 301 if !certbot_challange')
+        http_in.remove_config('redirect', 'scheme https code 301 if !certbot_challenge')
         http_in.remove_config('redirect', 'scheme https code 301')
         http_in.remove_usebackend('b4b_main')
 
@@ -69,10 +69,10 @@ class HAProxy:
             if acl.value == 'hdr(host) -i ' + domain:
                 http_in.config_block.remove(acl)
 
-        http_in.add_acl(hapconfig.Acl('certbot_challange', 'hdr(host) -i ' + domain))
+        http_in.add_acl(hapconfig.Acl('certbot_challenge', 'hdr(host) -i ' + domain))
 
-        http_in.add_usebackend(hapconfig.UseBackend('b4b_main', 'if', 'certbot_challange', False))
-        http_in.add_config(hapconfig.Config('redirect', 'scheme https code 301 if !certbot_challange'))
+        http_in.add_usebackend(hapconfig.UseBackend('b4b_main', 'if', 'certbot_challenge', False))
+        http_in.add_config(hapconfig.Config('redirect', 'scheme https code 301 if !certbot_challenge'))
 
         if not self.save_configuration():
             return {'success': False}
@@ -96,7 +96,7 @@ class HAProxy:
 
         if len(http_in.acls()) == 0:
             http_in.remove_usebackend('b4b_main')
-            http_in.remove_config('redirect', 'scheme https code 301 if !certbot_challange')
+            http_in.remove_config('redirect', 'scheme https code 301 if !certbot_challenge')
             http_in.add_config(hapconfig.Config('redirect', 'scheme https code 301'))
         
         if not self.save_configuration():

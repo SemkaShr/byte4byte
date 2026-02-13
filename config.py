@@ -19,15 +19,17 @@ ASSETS_PATH = Path.cwd() / 'assets'
 ASSETS_PATH.mkdir(parents=True, exist_ok=True)
 RESOURCES_PATH = Path.cwd() / 'resources'
 RESOURCES_PATH.mkdir(parents=True, exist_ok=True)
+STATS_SAVE_PATH = Path.cwd() / 'tmp' / 'stats'
+RESOURCES_PATH.mkdir(parents=True, exist_ok=True)
 
-FULL_CHALLANGE_SCRIPT = (ASSETS_PATH / 'full_challange.js').read_text()
-FULL_CHALLANGE_SCRIPT_AMOUNT = 20
-FULL_CHALLANGE_SCRIPT_LIFETIME = 180 # Hint: Do not set less then 90s
+FULL_CHALLENGE_SCRIPT = (ASSETS_PATH / 'full_challenge.js').read_text()
+FULL_CHALLENGE_SCRIPT_AMOUNT = 20
+FULL_CHALLENGE_SCRIPT_LIFETIME = 180 # Hint: Do not set less then 90s
 
-INJECT_CHALLANGE_SCRIPT = (ASSETS_PATH / 'inject_challange.js').read_text()
-INJECT_CHALLANGE_SCRIPT_LIFETIME = 86400
-INJECT_CHALLANGE_SCRIPT_AMOUNT = 20
-INJECT_CHALLANGE_UNVERFIED_TIME_LIMIT = 20 # seconds
+INJECT_CHALLENGE_SCRIPT = (ASSETS_PATH / 'inject_challenge.js').read_text()
+INJECT_CHALLENGE_SCRIPT_LIFETIME = 86400
+INJECT_CHALLENGE_SCRIPT_AMOUNT = 20
+INJECT_CHALLENGE_UNVERFIED_TIME_LIMIT = 20 # seconds
 
 PAGE_503 = minify((ASSETS_PATH / '503.html').read_text(), minify_css=True, minify_js=True)
 PAGE_502 = minify((ASSETS_PATH / '502.html').read_text(), minify_css=True, minify_js=True)

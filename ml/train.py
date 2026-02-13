@@ -8,8 +8,17 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, roc_auc_score, average_precision_score
+
 from xgboost import XGBClassifier
-from sklearn.ensemble import RandomForestClassifier
+from lightgbm import LGBMClassifier
+from catboost import CatBoostClassifier
+
+from sklearn.ensemble import (
+    ExtraTreesClassifier,
+    GradientBoostingClassifier
+)
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 
 import joblib
 from pathlib import Path
@@ -105,7 +114,7 @@ for sessionFile in path.iterdir():
                     if asn['ASN'] not in ['12389', '25513', '31133', '21299', '15378']:
                         continue
                 elif session.label == 'bot':
-                    if asn['ASN'] not in ['30058', '28753', '16509', '16276', '14061', '15169']:
+                    if asn['ASN'] not in ['30058', '28753', '16509', '16276', '14061', '15169', '214036', '63023', '30823', '202422']:
                         continue
                     
                     
@@ -133,57 +142,221 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, stratify=y, random_state=42
 )
 
+from sklearn.linear_model import LogisticRegression, SGDClassifier
+from sklearn.svm import LinearSVC
 
-# model = make_pipeline(
-#     StandardScaler(),
-#     XGBClassifier(
-#         n_estimators=600,
-#         max_depth=None,                 # ↓ чтобы не переобучаться
-#         min_child_weight=4,          # ↑ для борьбы с шумом
-#         learning_rate=0.03,          # ↓ smoother learning
-#         subsample=0.8,
-#         colsample_bytree=0.7,
-#         objective="binary:logistic",
-#         eval_metric="aucpr",         # важно при дисбалансе
-#         random_state=42,
-#         n_jobs=-1
-#     )
-# )
 
-from xgboost import XGBClassifier
-from lightgbm import LGBMClassifier
-from catboost import CatBoostClassifier
+def tryModel(model, name, save=False):
+    print('-------', name, '-------')
+    model.fit(X_train, y_train)
 
-from sklearn.ensemble import (
-    RandomForestClassifier,
-    ExtraTreesClassifier,
-    GradientBoostingClassifier
-)
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
+    y_pred = model.predict(X_test)
+    y_proba = model.predict_proba(X_test)[:, 1]
+
+    print(classification_report(y_test, y_pred, digits=4))
+    logger.info("ROC AUC:" + str(roc_auc_score(y_test, y_proba)))
+    logger.info("PR AUC:" + str(average_precision_score(y_test, y_proba, pos_label=1)))
+
+    if save:
+        joblib.dump(model, outputFilename)
+        logger.info('Model saved to ' + str(outputFilename))
+    print('-------', 'end of model', '-------', '\n\n\n')
+    
 
 model = make_pipeline(
     StandardScaler(),
-    LGBMClassifier(
-        n_estimators=600,
-        learning_rate=0.03,
-        num_leaves=31,
-        subsample=0.8,
-        colsample_bytree=0.7,
-        objective="binary",
+    LogisticRegression(
+        penalty="l2",
+        C=0.5,
+        solver="lbfgs",
+        max_iter=5000,
+        class_weight={0: 5.0, 1: 1.0},
+        random_state=42
+    )
+)
+tryModel(model, "Ridge (L2)")
+
+model = make_pipeline(
+    StandardScaler(),
+    LogisticRegression(
+        penalty="l1",
+        C=0.8,
+        solver="saga",
+        max_iter=8000,
+        class_weight={0: 5.0, 1: 1.0},
         random_state=42,
         n_jobs=-1
     )
 )
+tryModel(model, "Lasso (L1)")
 
-model.fit(X_train, y_train)
+model = make_pipeline(
+    StandardScaler(),
+    LogisticRegression(
+        penalty="elasticnet",
+        l1_ratio=0.3,
+        C=0.8,
+        solver="saga",
+        max_iter=8000,
+        class_weight={0: 5.0, 1: 1.0},
+        random_state=42,
+        n_jobs=-1
+    )
+)
+tryModel(model, "ElasticNet")
 
-y_pred = model.predict(X_test)
-y_proba = model.predict_proba(X_test)[:, 1]
+model = make_pipeline(
+    StandardScaler(),
+    SGDClassifier(
+        loss="log_loss",
+        penalty="elasticnet",
+        alpha=5e-5,
+        l1_ratio=0.15,
+        max_iter=20000,
+        tol=1e-4,
+        early_stopping=True,
+        n_iter_no_change=10,
+        class_weight={0: 5.0, 1: 1.0},
+        random_state=42
+    )
+)
+tryModel(model, "SGD (linear, large-scale)")
 
-print(classification_report(y_test, y_pred, digits=4))
-logger.info("ROC AUC:" + str(roc_auc_score(y_test, y_proba)))
-logger.info("PR AUC:" + str(average_precision_score(y_test, y_proba, pos_label=1)))
+model = make_pipeline(
+    StandardScaler(),
+    SVC(
+        kernel="rbf",
+        C=2.0,
+        gamma="scale",
+        class_weight={0: 5.0, 1: 1.0},
+        probability=True,
+        random_state=42
+    )
+)
+tryModel(model, "Linear SVM (probabilistic)")
 
-joblib.dump(model, outputFilename)
-logger.info('Model saved to ' + str(outputFilename))
+model = make_pipeline(
+    StandardScaler(),
+    GradientBoostingClassifier(
+        n_estimators=600,
+        learning_rate=0.03,
+        max_depth=3,
+        random_state=42
+    )
+)
+tryModel(model, "GradientBoosting (sklearn)")
+
+model = make_pipeline(
+    StandardScaler(),
+    ExtraTreesClassifier(
+        n_estimators=800,
+        max_depth=None,
+        min_samples_leaf=5,
+        max_features="sqrt",
+        class_weight={0: 5.0, 1: 1.0},
+        random_state=42,
+        n_jobs=-1
+    )
+)
+tryModel(model, "ExtraTrees")
+
+# model = make_pipeline(
+#     StandardScaler(),
+#     CatBoostClassifier(
+#         iterations=1600,
+#         depth=12,
+#         learning_rate=0.03,
+#         loss_function="Logloss",
+#         eval_metric="AUC",
+#         class_weights=[5.0, 1.0],  
+#         l2_leaf_reg=5.0,
+#         random_seed=42,
+#         verbose=False
+#     )
+# )
+
+model = make_pipeline(
+    StandardScaler(),
+    CatBoostClassifier(
+        iterations=2000,
+        depth=12,                    # было 12
+        learning_rate=0.03,
+        loss_function="Logloss",
+        eval_metric="AUC",
+
+        class_weights=[5.0, 1.0],   # было 5.0
+
+        l2_leaf_reg=5.0,           # было 5.0 (усилили регуляризацию)
+        random_strength=1.5,        # добавляет шум/робастность
+        bagging_temperature=1.0,    # полезно против FP
+        rsm=0.8,                    # как feature_fraction
+
+        border_count=254,           # можно 128/254
+        od_type="Iter",
+        od_wait=100,                 # ранняя остановка
+
+        random_seed=42,
+        verbose=False
+    )
+)
+
+tryModel(model, "CatBoost")
+
+# model = make_pipeline(
+#     StandardScaler(),
+#     LGBMClassifier(
+#         n_estimators=800,
+#         learning_rate=0.03,
+#         num_leaves=50,
+#         subsample=0.8,
+#         colsample_bytree=0.8,
+#         objective="binary",
+#         random_state=42,
+#         # min_child_weight=0.5, 
+#         n_jobs=-1
+#     )
+# )
+model = make_pipeline(
+    StandardScaler(),
+    LGBMClassifier(
+        n_estimators=1000,
+        learning_rate=0.03,
+        num_leaves=50,
+        max_depth=-1,
+        objective="binary",
+        random_state=42,
+        n_jobs=-1,
+        bagging_fraction=0.8,
+        bagging_freq=1,
+        feature_fraction=0.8, 
+        feature_fraction_bynode=0.8, 
+        min_gain_to_split=0.9,
+        scale_pos_weight=0.3,
+        min_child_samples=10, 
+        reg_lambda=1.0,
+        reg_alpha=5.0,
+        verbose=-1
+    )
+)
+tryModel(model, "LightGBM")
+
+model = make_pipeline(
+    StandardScaler(),
+    XGBClassifier(
+        n_estimators=1200,
+        max_depth=12,
+        learning_rate=0.03,
+        subsample=0.8,
+        objective="binary:logistic",
+        eval_metric="aucpr",         
+        random_state=42,
+        n_jobs=-1,
+        booster='gbtree',
+        gamma=2,
+        scale_pos_weight = 0.3,
+        tree_method="hist",
+        colsample_bytree=0.8,
+        colsample_bylevel=0.8
+    )
+)
+tryModel(model, "XGBClassifier", True)

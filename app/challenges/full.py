@@ -1,5 +1,5 @@
 from fastapi.responses import Response, JSONResponse
-from config import FULL_CHALLANGE_SCRIPT, REDIS, FULL_CHALLANGE_SCRIPT_AMOUNT, FULL_CHALLANGE_SCRIPT_LIFETIME
+from config import FULL_CHALLENGE_SCRIPT, REDIS, FULL_CHALLENGE_SCRIPT_AMOUNT, FULL_CHALLENGE_SCRIPT_LIFETIME
 from app.ray.ray import Status
 from app.challenges import Script as BaseScript
 
@@ -7,7 +7,7 @@ import time
 import random
 import json
 
-class FullChallange:
+class FullChallenge:
     def __init__(self, ray):
         self.ray = ray
     
@@ -28,13 +28,13 @@ class FullChallange:
             print('----------')
             
             if score >= 100:
-                self.ray.status = Status.JS_CHALLANGE
+                self.ray.status = Status.JS_CHALLENGE
                 self.ray.requestType = 'bot'
                 self.ray.save()
                 
                 return JSONResponse({'ok': True})
             else:
-                self.ray.status = Status.JS_CHALLANGE
+                self.ray.status = Status.JS_CHALLENGE
                 self.ray.save()
                 
                 return JSONResponse({'ok': True})
@@ -44,30 +44,30 @@ class FullChallange:
     def getScript(self):
         script = Script()
         
-        if self.ray.fullChallangeID is not None and REDIS.exists('challenges:full:' + str(self.ray.fullChallangeID)):
-            script.load(self.ray.fullChallangeID, json.loads(REDIS.get('challenges:full:' + str(self.ray.fullChallangeID))))
+        if self.ray.fullChallengeID is not None and REDIS.exists('challenges:full:' + str(self.ray.fullChallengeID)):
+            script.load(self.ray.fullChallengeID, json.loads(REDIS.get('challenges:full:' + str(self.ray.fullChallengeID))))
             return script
         
         keys = REDIS.keys('challenges:full:*')
-        if len(keys) >= FULL_CHALLANGE_SCRIPT_AMOUNT:
+        if len(keys) >= FULL_CHALLENGE_SCRIPT_AMOUNT:
             random.seed(time.time_ns())
             random.shuffle(keys)
             
             scriptKey = None
             for key in keys:
-                if REDIS.ttl(key) > FULL_CHALLANGE_SCRIPT_LIFETIME / 2:
+                if REDIS.ttl(key) > FULL_CHALLENGE_SCRIPT_LIFETIME / 2:
                     scriptKey = key.decode()
                     break
                 
             if scriptKey is not None:
                 scriptID = scriptKey.split(':')[-1]
-                self.ray.fullChallangeID = scriptID
+                self.ray.fullChallengeID = scriptID
                 self.ray.save()
                 script.load(scriptID, json.loads(REDIS.get(scriptKey)))
                 return script
         
         script.generate()
-        self.ray.fullChallangeID = script.encryptionKey
+        self.ray.fullChallengeID = script.encryptionKey
         self.ray.save()
         return script
             
@@ -180,7 +180,7 @@ class Script(BaseScript):
     ]
         
     def save(self):
-        REDIS.set('challenges:full:' + str(self.encryptionKey), json.dumps(self.dump()), FULL_CHALLANGE_SCRIPT_LIFETIME)
+        REDIS.set('challenges:full:' + str(self.encryptionKey), json.dumps(self.dump()), FULL_CHALLENGE_SCRIPT_LIFETIME)
     
     def getRawCode(self):
-        return FULL_CHALLANGE_SCRIPT
+        return FULL_CHALLENGE_SCRIPT

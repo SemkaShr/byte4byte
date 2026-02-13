@@ -1,8 +1,8 @@
 from fastapi import Request
 from fastapi.responses import Response
 import httpx
-from app.challenges.full import FullChallange
-from app.challenges.inject import InjectChallange
+from app.challenges.full import FullChallenge
+from app.challenges.inject import InjectChallenge
 
 import config
 import hashlib
@@ -23,13 +23,13 @@ class Router:
                     endpoint = self.endpoints[host]
                     handle = await endpoint.handleRequest(request)
                     
-                    if handle.status in [EndpointResponseStatus.VERFIED, EndpointResponseStatus.JS_CHALLANGE]:
-                        if handle.status == EndpointResponseStatus.JS_CHALLANGE:
-                            challange = InjectChallange(handle.ray)
-                            if request.url.path == '/' + challange.script.getScriptFilename():
-                                return Response(challange.getScriptCode(), media_type='text/javascript')
-                            elif request.url.path == challange.script.getScriptEndpoint():
-                                return await challange.getResponse()
+                    if handle.status in [EndpointResponseStatus.VERFIED, EndpointResponseStatus.JS_CHALLENGE]:
+                        if handle.status == EndpointResponseStatus.JS_CHALLENGE:
+                            challenge = InjectChallenge(handle.ray)
+                            if request.url.path == '/' + challenge.script.getScriptFilename():
+                                return Response(challenge.getScriptCode(), media_type='text/javascript')
+                            elif request.url.path == challenge.script.getScriptEndpoint():
+                                return await challenge.getResponse()
                         
                         body = await request.body()
                         try:
@@ -51,13 +51,13 @@ class Router:
                         else:
                             contentLength = None
                         
-                        if handle.status == EndpointResponseStatus.JS_CHALLANGE:
+                        if handle.status == EndpointResponseStatus.JS_CHALLENGE:
                             if 'text/html' in endpointResponse.headers.get('content-type', 'text/html') and content.startswith((b'<!DOCTYPE html>', b'<html')):
                                 # if handle.ray.group.name == 'dev':
-                                injectCode = InjectChallange(handle.ray).getInjectCode()
+                                injectCode = InjectChallenge(handle.ray).getInjectCode()
                                 content += injectCode
                             else:
-                                pass # Full Challange
+                                pass # Full Challenge
 
                         response = Response(
                             content,
@@ -70,8 +70,8 @@ class Router:
                             
                         # if contentLength != None:
                         response.headers['content-length'] = str(len(content))
-                    elif handle.status == EndpointResponseStatus.FULL_JS_CHALLANGE:
-                        response = await FullChallange(handle.ray).getResponse()
+                    elif handle.status == EndpointResponseStatus.FULL_JS_CHALLENGE:
+                        response = await FullChallenge(handle.ray).getResponse()
                     elif handle.status == EndpointResponseStatus.BLOCKED:
                         response = Response(config.PAGE_403.replace('{{RAY_ID}}', handle.ray.getShortID()), 403)
                     else:

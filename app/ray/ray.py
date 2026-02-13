@@ -14,8 +14,8 @@ class Ray:
         
         self.requestType = 'human'
         
-        self.fullChallangeID = None
-        self.injectChallangeID = None
+        self.fullChallengeID = None
+        self.injectChallengeID = None
         
         self.score = None
         self.scoreLogs = None
@@ -42,8 +42,8 @@ class Ray:
         self.status = Status(data['status']) if any(k.value == data['status'] for k in Status) else Status.UNVERFIED
         self.savedScore = data.get('score', None)
         self.savedScoreLogs = data.get('scoreLogs', None)
-        self.fullChallangeID = data.get('fullChallangeID', None)
-        self.injectChallangeID = data.get('injectChallangeID', None)
+        self.fullChallengeID = data.get('fullChallengeID', None)
+        self.injectChallengeID = data.get('injectChallengeID', None)
         self.createTime = data.get('createTime', time.time_ns())
         self.requestType = data.get('requestType', self.requestType)
         self.data = data
@@ -55,8 +55,8 @@ class Ray:
             'score': self.score if self.score is not None else self.savedScore,
             'scoreLogs': self.scoreLogs if self.scoreLogs is not None else self.savedScoreLogs,
             'appAccuracy': self.appAccuracy,
-            'fullChallangeID': self.fullChallangeID,
-            'injectChallangeID': self.injectChallangeID,
+            'fullChallengeID': self.fullChallengeID,
+            'injectChallengeID': self.injectChallengeID,
             'verifyLogs': self.verifyLogs,
             'createTime': self.createTime,
             'requestType': self.requestType,
@@ -95,8 +95,8 @@ class Ray:
             self.status = Status.BLOCKED
             self.verifyLogs.append('User agent is None')
         
-        if self.status not in [Status.JS_CHALLANGE, Status.FULL_JS_CHALLANGE]:
-            self.status = Status.FULL_JS_CHALLANGE
+        if self.status not in [Status.JS_CHALLENGE, Status.FULL_JS_CHALLENGE]:
+            self.status = Status.FULL_JS_CHALLENGE
         
         # JA4 / UserAgent Filter 
         if self.status == Status.UNVERFIED:
@@ -111,11 +111,11 @@ class Ray:
                         self.status = Status.BLOCKED
                         self.verifyLogs.append('Low JA4 App accuracy. Set status to blocked')
                     elif accuracy < 0.7:
-                        self.status = Status.FULL_JS_CHALLANGE
-                        self.verifyLogs.append('Medium JA4 App accuracy. Set status to FULL JS CHALLANGE')
+                        self.status = Status.FULL_JS_CHALLENGE
+                        self.verifyLogs.append('Medium JA4 App accuracy. Set status to FULL JS CHALLENGE')
                     else:
-                        self.status = Status.FULL_JS_CHALLANGE
-                        self.verifyLogs.append('Normal JA4 App accuracy. Set status to JS CHALLANGE')
+                        self.status = Status.FULL_JS_CHALLENGE
+                        self.verifyLogs.append('Normal JA4 App accuracy. Set status to JS CHALLENGE')
             else:
                 bot = False
                 for word in BOT_USERAGENT_KEYWORDS:
@@ -126,8 +126,8 @@ class Ray:
                     self.status = Status.BLOCKED
                     self.verifyLogs.append('Bot detected in User-Agent. Set status to Blocked')
                 else:
-                    self.status = Status.FULL_JS_CHALLANGE
-                    self.verifyLogs.append('No JA4 App found, No bot detected. Changed status to FULL_JS_CHALLANGE')
+                    self.status = Status.FULL_JS_CHALLENGE
+                    self.verifyLogs.append('No JA4 App found, No bot detected. Changed status to FULL_JS_CHALLENGE')
         
         self.save()
 
@@ -149,6 +149,6 @@ class Status(Enum):
     UNVERFIED = 'unverfied'
     VERIFING = 'verifing'
     VERFIED = 'verfied'
-    FULL_JS_CHALLANGE = 'full_js_challange'
-    JS_CHALLANGE = 'js_challange'
+    FULL_JS_CHALLENGE = 'full_js_challenge'
+    JS_CHALLENGE = 'js_challenge'
     BLOCKED = 'blocked'

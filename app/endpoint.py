@@ -30,6 +30,6 @@ class EndpointResponse:
 
 class EndpointResponseStatus(Enum):
     VERFIED = 'verfied'
-    JS_CHALLANGE = 'js_challange'
-    FULL_JS_CHALLANGE = 'full_js_challange'
+    JS_CHALLENGE = 'js_challenge'
+    FULL_JS_CHALLENGE = 'full_js_challenge'
     BLOCKED = 'blocked'
