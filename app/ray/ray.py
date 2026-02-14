@@ -1,7 +1,6 @@
 from enum import Enum
-from config import REDIS, RAY_LIFETIME, JA4_KEY_DETECT, BOT_USERAGENT_KEYWORDS
+from config import REDIS, RAY_LIFETIME, JA4_KEY_DETECT, BOT_USERAGENT_KEYWORDS, DB
 import json
-import pprint
 import time
 import ipaddress
 
@@ -16,6 +15,7 @@ class Ray:
         
         self.fullChallengeID = None
         self.injectChallengeID = None
+        self.dbID = None
         
         self.score = None
         self.scoreLogs = None
@@ -46,6 +46,7 @@ class Ray:
         self.injectChallengeID = data.get('injectChallengeID', None)
         self.createTime = data.get('createTime', time.time_ns())
         self.requestType = data.get('requestType', self.requestType)
+        self.dbID = data.get('dbID', None)
         self.data = data
     
     def dump(self):
@@ -60,19 +61,28 @@ class Ray:
             'verifyLogs': self.verifyLogs,
             'createTime': self.createTime,
             'requestType': self.requestType,
+            'dbID': self.dbID,
             'request': {
                 'ip': self.ip,
                 'user-agent': self.userAgent,
                 'ja4_fingerprint': self.ja4_fingerprint
             }
         }
+        
+    def saveRequest(self):
+        if self.dbID is not None:
+            DB.addRequest(self.dbID, time.time_ns(), str(self.request.url), self.status.value)
     
     def save(self):
+        if self.dbID is None and not DB.rayExists(self.id, self.group.name):
+            self.dbID = DB.addRay(self.id, self.createTime, self.status.value, self.group.name, self.ip, None, None, None, self.userAgent, self.verifyLogs, self.scoreLogs, {})
         REDIS.set('ray:' + self.group.name + ':' + str(self.id), json.dumps(self.dump()), RAY_LIFETIME)
+        self.updateDB({'status': self.status.value, 'verify_logs': self.verifyLogs})
+        
+    def updateDB(self, data):
+        DB.updateRay(self.dbID, data)
 
     def verify(self):
-        pp = pprint.PrettyPrinter(indent=4)
-        
         self.verifyLogs = []
         ip = ipaddress.ip_address(self.ip)
         for subnet in self.group.whitelist:

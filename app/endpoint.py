@@ -17,6 +17,8 @@ class Endpoint:
             if not ray.verify() in [Status.UNVERFIED, Status.VERIFING]:
                 break
             time.sleep(0.1)
+            
+        ray.saveRequest()
     
         return EndpointResponse(ray, EndpointResponseStatus(ray.status.value))
     

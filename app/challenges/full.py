@@ -20,6 +20,7 @@ class FullChallenge:
             score, logs = self.calcScore(data, script)
             self.ray.score = score
             self.ray.scoreLogs = logs
+            self.ray.updateDB({'score_logs': logs})
             
             print('----------')
             print(self.ray.ip)

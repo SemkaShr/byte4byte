@@ -3,10 +3,26 @@ import os
 import redis
 import json
 import joblib
+from db import Database
 from minify_html import minify
+
+import logging
+def getLogger(name):
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(levelname)s:     %(name)s: %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.propagate = False
+
+    return logger
 
 PID = os.getpid()
 REDIS = redis.Redis(host='localhost', port=6379, db=0)
+DB = Database(getLogger('b4b.db'))
 
 MODEL = joblib.load('model.dump')
 
@@ -66,22 +82,8 @@ BOT_USERAGENT_KEYWORDS.extend([
 ]) # Random bots
 
 import javascript
-JS_OBFUSCATOR = javascript.require('./node_modules/javascript-obfuscator/dist/index.js')
+JS_OBFUSCATOR = None
 def getObfuscator(renew=False):
-    if renew:
+    if renew or JS_OBFUSCATOR is None:
         JS_OBFUSCATOR = javascript.require('./node_modules/javascript-obfuscator/dist/index.js')
     return JS_OBFUSCATOR
-
-import logging
-def getLogger(name):
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
-
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(levelname)s:     %(name)s: %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.propagate = False
-
-    return logger
