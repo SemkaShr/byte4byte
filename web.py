@@ -1,7 +1,5 @@
 from config import getLogger, DB
-
-logger = getLogger('b4b.web')
-
+import ip2asn
 import os
 import time
 import hashlib
@@ -9,6 +7,13 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 import json
+
+
+@st.cache_resource(show_spinner=False)
+def load_asndb():
+    return ip2asn.IP2ASN("/root/.local/share/ip2asn/database.tsv")
+i2a = load_asndb()
+logger = getLogger('b4b.web')
 
 STATUS_ORDER = ["blocked", "full_js_challenge", "js_challenge", "verfied", "unverfied", "unknown"]
 
@@ -62,11 +67,12 @@ def status_badge(s: str) -> str:
 
 NS = 1_000_000_000
 RANGE_PRESETS = {
-    "30 минут": {"window": 30 * 60, "bucket": 60},
-    "1 час": {"window": 60 * 60, "bucket": 2 * 60},
-    "12 часов": {"window": 12 * 60 * 60, "bucket": 15 * 60},
-    "1 день": {"window": 24 * 60 * 60, "bucket": 60 * 60},
-    "1 неделя": {"window": 7 * 24 * 60 * 60, "bucket": 6 * 60 * 60},
+    "15 минут": {"window": 15 * 60, "bucket": 1},
+    "30 минут": {"window": 30 * 60, "bucket": 2},
+    "1 час": {"window": 60 * 60, "bucket": 4},
+    "12 часов": {"window": 12 * 60 * 60, "bucket": 48},
+    "1 день": {"window": 24 * 60 * 60, "bucket": 96},
+    "1 неделя": {"window": 7 * 24 * 60 * 60, "bucket": 96*7},
 }
 
 
@@ -94,7 +100,7 @@ def auth_gate():
     if st.session_state.get("authed"):
         with st.sidebar:
             st.success(f"Вход выполнен: {st.session_state.get('auth_user')}")
-            if st.button("Выйти", use_container_width=True):
+            if st.button("Выйти", width='stretch'):
                 st.session_state["authed"] = False
                 st.session_state["auth_user"] = None
                 st.rerun()
@@ -261,8 +267,7 @@ def stacked_chart(df: pd.DataFrame, title: str, enabled_statuses=None, chart_key
         uirevision="keep",
     )
 
-    st.plotly_chart(fig, use_container_width=True, key=chart_key)
-    st.caption("Легенда: клик скрывает/показывает, двойной клик оставляет один статус.")
+    st.plotly_chart(fig, width='stretch', key=chart_key)
 
 def fetch_request_counts(since_ts: int, group: str | None):
     db = get_db()
@@ -500,11 +505,13 @@ def render_ray_list(rows):
         with st.expander(header, expanded=expanded):
             st.markdown(status_badge(status), unsafe_allow_html=True)
 
+            asnData = i2a.lookup_address(ip)
             st.markdown(
                 f"""
                 <div class="ray-meta">
-                  <div class="ray-field"><b>uuid</b>: {r.get('uuid') or '-'}</div>
-                  <div class="ray-field"><b>ip</b>: {ip}</div>
+                  <div class="ray-field"><b>uuid</b>: {r.get('uuid')[:32] or '-'}</div>
+                  <div class="ray-field"><b>IP</b>: {ip}</div>
+                  <div class="ray-field"><img src="https://flagcdn.com/{asnData['country'].lower()}.svg" width="16" alt="{asnData['country']}"/> <b>{asnData['owner']}</b>: AS{asnData['ASN']}</div>
                   <div class="ray-field"><b>группа</b>: {group}</div>
                   <div class="ray-field"><b>создано</b>: {created}</div>
                   <div class="ray-field"><b>кол-во запросов</b>: {int(r.get('req_count') or 0)}</div>
@@ -555,10 +562,10 @@ def render_ray_list(rows):
                     st.info("запросы не найдены")
                 else:
                     df_req["time"] = pd.to_datetime(df_req["time"].astype("int64"), unit="ns")
-                    st.dataframe(style_status_df(df_req, ["status"]), use_container_width=True, height=360)
+                    st.dataframe(style_status_df(df_req, ["status"]), width='stretch', height=360)
 
 def search_page():
-    st.title("Поиск rays")
+    st.title("Поиск запросов")
 
     statuses = ["Все"] + [s for s in STATUS_ORDER if s != "unknown"]
     challenges = ["Все"] + ["blocked", "full_js_challenge", "js_challenge", "verfied"]
@@ -621,11 +628,11 @@ def search_page():
 
     col1, col2 = st.columns([1, 1])
     with col1:
-        if st.button("← Назад", disabled=offset <= 0, use_container_width=True):
+        if st.button("← Назад", disabled=offset <= 0, width='stretch'):
             st.session_state["ray_offset"] = max(0, offset - limit)
             st.rerun()
     with col2:
-        if st.button("Вперёд →", disabled=(offset + limit) >= total, use_container_width=True):
+        if st.button("Вперёд →", disabled=(offset + limit) >= total, width='stretch'):
             st.session_state["ray_offset"] = offset + limit
             st.rerun()
 

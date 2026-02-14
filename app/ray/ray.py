@@ -105,8 +105,8 @@ class Ray:
             self.status = Status.BLOCKED
             self.verifyLogs.append('User agent is None')
         
-        if self.status not in [Status.JS_CHALLENGE, Status.FULL_JS_CHALLENGE]:
-            self.status = Status.FULL_JS_CHALLENGE
+        # if self.status not in [Status.JS_CHALLENGE, Status.FULL_JS_CHALLENGE]:
+        #     self.status = Status.FULL_JS_CHALLENGE
         
         # JA4 / UserAgent Filter 
         if self.status == Status.UNVERFIED:
@@ -124,7 +124,7 @@ class Ray:
                         self.status = Status.FULL_JS_CHALLENGE
                         self.verifyLogs.append('Medium JA4 App accuracy. Set status to FULL JS CHALLENGE')
                     else:
-                        self.status = Status.FULL_JS_CHALLENGE
+                        self.status = Status.JS_CHALLENGE
                         self.verifyLogs.append('Normal JA4 App accuracy. Set status to JS CHALLENGE')
             else:
                 bot = False

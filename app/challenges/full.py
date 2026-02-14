@@ -22,19 +22,15 @@ class FullChallenge:
             self.ray.scoreLogs = logs
             self.ray.updateDB({'score_logs': logs})
             
-            print('----------')
-            print(self.ray.ip)
-            print(score)
-            print(logs)
-            print('----------')
-            
             if score >= 100:
                 self.ray.status = Status.JS_CHALLENGE
                 self.ray.requestType = 'bot'
+                self.ray.updateDB({'full_challenge_status': 'blocked'})
                 self.ray.save()
                 
                 return JSONResponse({'ok': True})
             else:
+                self.ray.updateDB({'full_challenge_status': 'verfied'})
                 self.ray.status = Status.JS_CHALLENGE
                 self.ray.save()
                 

@@ -20,6 +20,8 @@ def getLogger(name):
 
     return logger
 
+COLLECT_SESSIONS = False
+
 PID = os.getpid()
 REDIS = redis.Redis(host='localhost', port=6379, db=0)
 DB = Database(getLogger('b4b.db'))

@@ -4,9 +4,10 @@ import string
 import json
 from pathlib import Path
 
-from config import REDIS, INJECT_CHALLENGE_SCRIPT, INJECT_CHALLENGE_UNVERFIED_TIME_LIMIT, INJECT_CHALLENGE_SCRIPT_LIFETIME, INJECT_CHALLENGE_SCRIPT_AMOUNT, getLogger
+from config import REDIS, INJECT_CHALLENGE_SCRIPT, COLLECT_SESSIONS, INJECT_CHALLENGE_SCRIPT_LIFETIME, INJECT_CHALLENGE_SCRIPT_AMOUNT, getLogger
 from app.challenges import Script as BaseScript
 from fastapi.responses import JSONResponse
+from app.ray.ray import Status
 
 from ml.session import Session
 
@@ -24,27 +25,41 @@ class InjectChallenge:
             event = data.get('event')
             if data['session'] == None:
                 return JSONResponse({'ok': False})
-            session = data.get('session').replace('/', '').replace('\\', '').replace('.', '')
             
-            file = Path('./sessions/') / (str(self.ray.getShortID() + '.' + str(session)) + '.json')
-            if file.exists():
-                content = json.loads(file.read_text())
+            if COLLECT_SESSIONS:
+                session = data.get('session').replace('/', '').replace('\\', '').replace('.', '')
+                
+                file = Path('./sessions/') / (str(self.ray.getShortID() + '.' + str(session)) + '.json')
+                if file.exists():
+                    content = json.loads(file.read_text())
+                else:
+                    content = {'data': [], 'ray': self.ray.dump()}
+                
+                if event == 'session_end':
+                    if len(content['data']) > 0 and content['data'][-1]['event'] == 'session_end':
+                        return JSONResponse({'ok': True})
+                    
+                    session = Session()
+                    print('predict', session.predict(data))
+                    print('ip', self.ray.ip)
+                    
+                content['data'].append(data)
+                file.write_text(json.dumps(content))
+                
+                if event == 'session_end':
+                    print('[' + self.ray.requestType + '] Got full session: ' + str(file))
             else:
-                content = {'data': [], 'ray': self.ray.dump()}
-            
-            if(event == 'session_end'):
-                if len(content['data']) > 0 and content['data'][-1]['event'] == 'session_end':
-                    return JSONResponse({'ok': True})
-                
-                session = Session()
-                print('predict', session.predict(data))
-                print('ip', self.ray.ip)
-                
-            content['data'].append(data)
-            file.write_text(json.dumps(content))
-            
-            if event == 'session_end':
-                print('[' + self.ray.requestType + '] Got full session: ' + str(file))
+                if event == 'session_end':
+                    session = Session()
+                    predict = session.predict(data)
+                    
+                    self.ray.updateDB({'extra_data': {'predict': float(predict[1]), 'inject_challenge_status': 'verfied'}})
+                    if predict[1] >= 0.5:
+                        self.ray.updateDB({'inject_challenge_status': 'verfied'})
+                        self.ray.status = Status.VERFIED
+                        self.ray.save()
+                    else:
+                        self.ray.updateDB({'inject_challenge_status': 'blocked'})
         except Exception as e:
             self.logger.exception(e)
 
