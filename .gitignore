@@ -10,5 +10,5 @@ latest.log
 sessions/
 sessions*.tar.gz
 appConfig.py
-webConfig.py
+dbConfig.py
 catboost_info

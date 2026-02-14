@@ -2,7 +2,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor, Json
 from psycopg2 import sql
 
-from webConfig import *
+from dbConfig import *
 
 SCHEMA_SQL = """
 DO $$

@@ -43,12 +43,12 @@ def init(hap: app.haproxy.HAProxy, router: app.router.Router):
     rayGroup.whitelistAdd('ip or subnet')
     rayGroup.whitelistAdd(*SEARCH_SYSTEMS_BOT) 
 
-# Configure webConfig.py:
+# Configure dbConfig.py:
 DB_NAME = 'byte4byte'
-DB_USERNAME = 'byte4byte_user'
+DB_USER = 'byte4byte_user'
 DB_PASSWORD = 'YOUR_PASSWORD'
-DB_PASSWORD = 5432 
-DB_HOSTNAME = 'localhost'
+DB_PORT = 5432 
+DB_HOST = 'localhost'
 
 
 ```
