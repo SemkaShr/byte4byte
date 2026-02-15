@@ -11,6 +11,8 @@ class Ray:
         self.group = group
         self.checker = {}
         
+        self.logDB = True
+        
         self.requestType = 'human'
         
         self.fullChallengeID = None
@@ -47,6 +49,7 @@ class Ray:
         self.createTime = data.get('createTime', time.time_ns())
         self.requestType = data.get('requestType', self.requestType)
         self.dbID = data.get('dbID', None)
+        self.logDB = data.get('logDB', True)
         self.data = data
     
     def dump(self):
@@ -61,6 +64,7 @@ class Ray:
             'verifyLogs': self.verifyLogs,
             'createTime': self.createTime,
             'requestType': self.requestType,
+            'logDB': self.logDB,
             'dbID': self.dbID,
             'request': {
                 'ip': self.ip,
@@ -70,17 +74,20 @@ class Ray:
         }
         
     def saveRequest(self):
-        if self.dbID is not None:
+        if self.logDB and self.dbID is not None:
             DB.addRequest(self.dbID, time.time_ns(), str(self.request.url), self.status.value)
     
-    def save(self):
-        if self.dbID is None and not DB.rayExists(self.id, self.group.name):
-            self.dbID = DB.addRay(self.id, self.createTime, self.status.value, self.group.name, self.ip, None, None, None, self.userAgent, self.verifyLogs, self.scoreLogs, {})
+    def save(self, saveDB=True):
+        if saveDB and self.logDB:
+            if self.dbID is None and not DB.rayExists(self.id, self.group.name):
+                self.dbID = DB.addRay(self.id, self.createTime, self.status.value, self.group.name, self.ip, None, None, None, self.userAgent, self.verifyLogs, self.scoreLogs, None)
+            self.updateDB({'status': self.status.value, 'verify_logs': self.verifyLogs})
         REDIS.set('ray:' + self.group.name + ':' + str(self.id), json.dumps(self.dump()), RAY_LIFETIME)
-        self.updateDB({'status': self.status.value, 'verify_logs': self.verifyLogs})
+        
         
     def updateDB(self, data):
-        DB.updateRay(self.dbID, data)
+        if self.logDB:
+            DB.updateRay(self.dbID, data)
 
     def verify(self):
         self.verifyLogs = []
@@ -89,6 +96,7 @@ class Ray:
             if ip in subnet:
                 self.status = Status.VERFIED
                 self.verifyLogs.append('IP in whitelist')
+                self.logDB = False
                 self.save()
                 return self.status
         

@@ -5,9 +5,12 @@ from app.challenges.full import FullChallenge
 from app.challenges.inject import InjectChallenge
 
 import config
-import hashlib
+from config import REDIS
+import time
+import json
 
 from app.endpoint import Endpoint, EndpointResponseStatus
+from app.ray.ray import Status as RayStatus
 from starlette.requests import ClientDisconnect
 
 class Router:
@@ -31,6 +34,7 @@ class Router:
                             elif request.url.path == challenge.script.getScriptEndpoint():
                                 return await challenge.getResponse()
                         
+                        response = None
                         body = await request.body()
                         try:
                             async with httpx.AsyncClient(follow_redirects=False, verify=False, cookies=request.cookies) as client:
@@ -44,32 +48,52 @@ class Router:
                                 )
                         except Exception as e:
                             return Response(config.PAGE_502.replace('{{RAY_ID}}', handle.ray.getShortID()).replace('{{ENDPOINT_HOST}}', endpoint.host), 502)
-
+                        
                         content = endpointResponse.content
-                        if endpointResponse.headers.get('content-length') != None:
-                            contentLength = int(endpointResponse.headers.get('content-length', len(content)))
-                        else:
-                            contentLength = None
+                        contentType = endpointResponse.headers.get('content-type', 'text/html')
                         
                         if handle.status == EndpointResponseStatus.JS_CHALLENGE:
-                            if 'text/html' in endpointResponse.headers.get('content-type', 'text/html') and content.startswith((b'<!DOCTYPE html>', b'<html')):
-                                # if handle.ray.group.name == 'dev':
-                                injectCode = InjectChallenge(handle.ray).getInjectCode()
-                                content += injectCode
-                            else:
-                                pass # Full Challenge
-
-                        response = Response(
-                            content,
-                            endpointResponse.status_code, 
-                            self.getResponseHeaders(endpointResponse.headers)
-                        )
-    
-                        for cookie in [v.decode('utf-8') for k, v in endpointResponse.headers.raw if k.lower() == b'set-cookie']:
-                            response.headers.append('set-cookie', cookie)
+                            injectKey = 'ray:actions:' + handle.ray.group.name + ':' + handle.ray.id + ':inject'
+                            noInjectKey = 'ray:actions:' + handle.ray.group.name + ':' + handle.ray.id + ':noInject'
                             
-                        # if contentLength != None:
-                        response.headers['content-length'] = str(len(content))
+                            if 'text/html' in contentType and content.startswith((b'<!DOCTYPE html>', b'<html')):
+                                if not REDIS.exists(injectKey + ':time'):
+                                    REDIS.set(injectKey + ':time', time.time(), ex=120)
+                                else:
+                                    if float(REDIS.get(injectKey + ':time')) - time.time() > 60:
+                                        if REDIS.exists(injectKey + ':data'):
+                                            if not challenge.predict(json.loads(REDIS.get(injectKey + ':data'))):
+                                                print('not verfided by predict: ', handle.ray.ip)
+                                        else:
+                                            print('where is no data, but time is expired: ', handle.ray.ip)
+                                
+                                injectCode = challenge.getInjectCode()
+                                content += injectCode
+                            elif handle.ray.savedScore == None and handle.ray.score == None:
+                                if not 'image' in contentType:
+                                    if REDIS.exists(noInjectKey):
+                                        REDIS.set(noInjectKey, int(config.REDIS.get(noInjectKey)) + 1, ex=60)
+                                    else:
+                                        REDIS.set(noInjectKey, 1, ex=60)
+                                    
+                                if REDIS.exists(noInjectKey) and int(config.REDIS.get(noInjectKey)) >= 20:
+                                    print('Got limited: ', handle.ray.ip)
+                                    handle.ray.status = RayStatus.FULL_JS_CHALLENGE
+                                    handle.ray.save()
+                                    response = await FullChallenge(handle.ray).getResponse()
+                                    REDIS.unlink(noInjectKey)
+
+                        if response == None:
+                            response = Response(
+                                content,
+                                endpointResponse.status_code, 
+                                self.getResponseHeaders(endpointResponse.headers)
+                            )
+        
+                            for cookie in [v.decode('utf-8') for k, v in endpointResponse.headers.raw if k.lower() == b'set-cookie']:
+                                response.headers.append('set-cookie', cookie)
+                                
+                            response.headers['content-length'] = str(len(content))
                     elif handle.status == EndpointResponseStatus.FULL_JS_CHALLENGE:
                         response = await FullChallenge(handle.ray).getResponse()
                     elif handle.status == EndpointResponseStatus.BLOCKED:

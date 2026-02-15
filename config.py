@@ -74,7 +74,7 @@ BOT_USERAGENT_KEYWORDS.extend([
 BOT_USERAGENT_KEYWORDS.extend([
     'bot', 'mastodon', 'https://', 'http://', 'whatsapp', 'twitter', 'facebook', 'chatgpt',
     'telegram', 'crawler', 'colly', 'phpcrawl', 'nutch', 'spider', 'scrapy', 'elinks',
-    'imageVacuum', 'apify', 'chrome-lighthouse', 'adsdefender', 'baidu', 'yandex', 'duckduckgo',
+    'imageVacuum', 'apify', 'chrome-lighthouse', 'adsdefender', 'baidu', 'yandex',
     'google', 'yahoo', 'bing', 'microsoftpreview',
 ]) # Web bots
 BOT_USERAGENT_KEYWORDS.extend([

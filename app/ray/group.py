@@ -29,7 +29,7 @@ class Group:
             ray.load(json.loads(REDIS.get('ray:' + self.name + ':' + str(rayID))))
         else:
             ray = Ray(self, self._genRayID(), request)
-            ray.save()
+            ray.save(False)
         return ray
 
     def _genRayID(self):

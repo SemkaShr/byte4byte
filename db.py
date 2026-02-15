@@ -250,6 +250,34 @@ class Database:
             raise
         finally:
             cur.close()
+            
+    def removeRequests(self, ray_id):
+        cur = self.conn.cursor()
+        try:
+            cur.execute("DELETE FROM requests WHERE ray_id = %s", (int(ray_id),))
+            n = cur.rowcount
+            self.conn.commit()
+            return n
+        except Exception:
+            self.conn.rollback()
+            self.logger.exception("removeRequests failed")
+            raise
+        finally:
+            cur.close()
+
+    def removeRay(self, ray_id):
+        cur = self.conn.cursor()
+        try:
+            cur.execute("DELETE FROM rays WHERE id = %s", (int(ray_id),))
+            n = cur.rowcount
+            self.conn.commit()
+            return n
+        except Exception:
+            self.conn.rollback()
+            self.logger.exception("removeRay failed")
+            raise
+        finally:
+            cur.close()
 
     def close(self):
         self.conn.close()

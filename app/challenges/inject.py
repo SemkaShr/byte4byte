@@ -22,11 +22,23 @@ class InjectChallenge:
         data = self.script.decrypt(body)
         
         try:
-            event = data.get('event')
-            if data['session'] == None:
+            event = data.get('event', None)
+            if event == None:
                 return JSONResponse({'ok': False})
             
+            injectDataKey = 'ray:actions:' + self.ray.group.name + ':' + self.ray.id + ':inject:data'
+            duration = data.get('data', {}).get('duration', 0)
+            if REDIS.exists(injectDataKey):
+                if json.loads(REDIS.get(injectDataKey))['data']['duration'] < duration:
+                    REDIS.set(injectDataKey, json.dumps(data), ex=120)
+            else:
+                REDIS.set(injectDataKey, json.dumps(data), ex=120)
+            
+            
             if COLLECT_SESSIONS:
+                if data.get('session', None) == None:
+                    return JSONResponse({'ok': False})
+                
                 session = data.get('session').replace('/', '').replace('\\', '').replace('.', '')
                 
                 file = Path('./sessions/') / (str(self.ray.getShortID() + '.' + str(session)) + '.json')
@@ -50,20 +62,25 @@ class InjectChallenge:
                     print('[' + self.ray.requestType + '] Got full session: ' + str(file))
             else:
                 if event == 'session_end':
-                    session = Session()
-                    predict = session.predict(data)
-                    
-                    self.ray.updateDB({'extra_data': {'predict': float(predict[1]), 'inject_challenge_status': 'verfied'}})
-                    if predict[1] >= 0.5:
-                        self.ray.updateDB({'inject_challenge_status': 'verfied'})
-                        self.ray.status = Status.VERFIED
-                        self.ray.save()
-                    else:
-                        self.ray.updateDB({'inject_challenge_status': 'blocked'})
+                    self.predict(data)
         except Exception as e:
             self.logger.exception(e)
 
         return JSONResponse({'ok': True})
+    
+    def predict(self, data):
+        session = Session()
+        predict = session.predict(data)
+        
+        self.ray.updateDB({'extra_data': {'predict': float(predict[1])}})
+        if predict[1] >= 0.5:
+            self.ray.updateDB({'inject_challenge_status': 'verfied'})
+            self.ray.status = Status.VERFIED
+            self.ray.save()
+            return True
+        else:
+            self.ray.updateDB({'inject_challenge_status': 'blocked'})
+            return False
         
     def getInjectCode(self):
         return ('<script src="/' + str(self.script.getScriptFilename()) + '"></script>').encode()

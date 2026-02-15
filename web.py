@@ -254,7 +254,7 @@ def stacked_chart(df: pd.DataFrame, title: str, enabled_statuses=None, chart_key
 
     fig.update_traces(
         opacity=0.30,
-        line=dict(shape="spline", smoothing=1.25, width=1),
+        line=dict(shape="spline", smoothing=1, width=1),
     )
 
     fig.update_layout(
