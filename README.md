@@ -3,7 +3,6 @@
 Byte4Byte - многоуровневая система скрытой защиты веб-приложений от автоматизированного трафика и атак прикладного уровня (L7).  
 Система работает в формате reverse-proxy и объединяет сетевой анализ, активные JavaScript-челленджи и поведенческую модель машинного обучения.
 
--
 
 ## Архитектура
 
@@ -15,8 +14,7 @@ Byte4Byte - многоуровневая система скрытой защи�
 - **PostgreSQL** - база данных для логирования  
 - **Streamlit + Plotly** - веб-панель статистики  
 
-<img src="docs/graph.png">
--
+<img src="docs/graph.svg">
 
 ## Установка
 
@@ -33,7 +31,6 @@ apt install nodejs npm haproxy redis postgresql postgresql-contrib
 sudo systemctl enable --now postgresql
 ````
 
--
 
 ### 2. Настройка PostgreSQL
 
@@ -44,7 +41,6 @@ CREATE DATABASE byte4byte OWNER byte4byte_user;
 \q
 ```
 
--
 
 ### 3. Клонирование проекта
 
@@ -53,7 +49,6 @@ git clone https://github.com/SemkaShr/byte4byte
 cd byte4byte
 ```
 
--
 
 ### 4. Установка Python-окружения
 
@@ -62,7 +57,6 @@ pip install uv
 uv sync
 ```
 
--
 
 ### 5. Установка обфускатора JavaScript
 
@@ -70,7 +64,6 @@ uv sync
 npm install --save-dev javascript-obfuscator
 ```
 
--
 
 ### 6. Настройка HAProxy
 
@@ -82,7 +75,6 @@ cp docs/haproxy/haproxy.cfg.example /etc/haproxy/haproxy.cfg
 systemctl restart haproxy
 ```
 
--
 
 ### 7. Конфигурация приложения
 
@@ -104,7 +96,6 @@ def init(hap: app.haproxy.HAProxy, router: app.router.Router):
     rayGroup.whitelistAdd(*SEARCH_SYSTEMS_BOT)
 ```
 
--
 
 ### 8. Настройка базы данных
 
@@ -118,7 +109,6 @@ DB_PORT = 5432
 DB_HOST = 'localhost'
 ```
 
--
 
 ## Запуск
 
