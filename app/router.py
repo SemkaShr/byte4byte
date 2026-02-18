@@ -60,7 +60,7 @@ class Router:
                                 if not REDIS.exists(injectKey + ':time'):
                                     REDIS.set(injectKey + ':time', time.time(), ex=120)
                                 else:
-                                    if float(REDIS.get(injectKey + ':time')) - time.time() > 60:
+                                    if float(REDIS.get(injectKey + ':time')) - time.time() > 30:
                                         if REDIS.exists(injectKey + ':data'):
                                             if not challenge.predict(json.loads(REDIS.get(injectKey + ':data'))):
                                                 print('not verfided by predict: ', handle.ray.ip)

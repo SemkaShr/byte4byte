@@ -111,10 +111,10 @@ for sessionFile in path.iterdir():
                         break
                     
                 if session.label == 'human':
-                    if asn['ASN'] not in ['12389', '25513', '31133', '21299', '15378']:
+                    if asn['ASN'] not in ['12389', '25513', '31133', '21299', '15378', '28840', '35125', '21299', '39001', '48573']:
                         continue
                 elif session.label == 'bot':
-                    if asn['ASN'] not in ['30058', '28753', '16509', '16276', '14061', '15169', '214036', '63023', '30823', '202422', '152868', '63199']:
+                    if asn['ASN'] not in ['30058', '28753', '16509', '16276', '14061', '15169', '214036', '63023', '30823', '202422', '152868', '63199', '4837', '61272', '17621']:
                         continue
                     
                     
@@ -260,40 +260,25 @@ model = make_pipeline(
 )
 tryModel(model, "ExtraTrees")
 
-# model = make_pipeline(
-#     StandardScaler(),
-#     CatBoostClassifier(
-#         iterations=1600,
-#         depth=12,
-#         learning_rate=0.03,
-#         loss_function="Logloss",
-#         eval_metric="AUC",
-#         class_weights=[5.0, 1.0],  
-#         l2_leaf_reg=5.0,
-#         random_seed=42,
-#         verbose=False
-#     )
-# )
-
 model = make_pipeline(
     StandardScaler(),
     CatBoostClassifier(
-        iterations=2000,
-        depth=12,                    # было 12
+        iterations=1000,
+        depth=12,                    
         learning_rate=0.03,
         loss_function="Logloss",
         eval_metric="AUC",
 
-        class_weights=[5.0, 1.0],   # было 5.0
+        class_weights=[5.0, 1.0],
 
-        l2_leaf_reg=5.0,           # было 5.0 (усилили регуляризацию)
-        random_strength=1.5,        # добавляет шум/робастность
-        bagging_temperature=1.0,    # полезно против FP
-        rsm=0.8,                    # как feature_fraction
+        l2_leaf_reg=5.0, 
+        random_strength=1.5,  
+        bagging_temperature=1.0,   
+        rsm=0.8,   
 
-        border_count=254,           # можно 128/254
+        border_count=128,        
         od_type="Iter",
-        od_wait=100,                 # ранняя остановка
+        od_wait=100,     
 
         random_seed=42,
         verbose=False
@@ -302,20 +287,6 @@ model = make_pipeline(
 
 tryModel(model, "CatBoost")
 
-# model = make_pipeline(
-#     StandardScaler(),
-#     LGBMClassifier(
-#         n_estimators=800,
-#         learning_rate=0.03,
-#         num_leaves=50,
-#         subsample=0.8,
-#         colsample_bytree=0.8,
-#         objective="binary",
-#         random_state=42,
-#         # min_child_weight=0.5, 
-#         n_jobs=-1
-#     )
-# )
 model = make_pipeline(
     StandardScaler(),
     LGBMClassifier(
