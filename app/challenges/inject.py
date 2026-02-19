@@ -79,6 +79,7 @@ class InjectChallenge:
             self.ray.save()
             return True
         else:
+            # Блокировка отключена для тестирования
             self.ray.updateDB({'inject_challenge_status': 'blocked'})
             return False
         

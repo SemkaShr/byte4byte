@@ -63,8 +63,10 @@ class Router:
                                     if float(REDIS.get(injectKey + ':time')) - time.time() > 30:
                                         if REDIS.exists(injectKey + ':data'):
                                             if not challenge.predict(json.loads(REDIS.get(injectKey + ':data'))):
+                                                # Блокировка отключена для тестирования
                                                 print('not verfided by predict: ', handle.ray.ip)
                                         else:
+                                            # Блокировка отключена для тестирования
                                             print('where is no data, but time is expired: ', handle.ray.ip)
                                 
                                 injectCode = challenge.getInjectCode()

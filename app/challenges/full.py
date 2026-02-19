@@ -23,6 +23,7 @@ class FullChallenge:
             self.ray.updateDB({'score_logs': logs})
             
             if score >= 100:
+                # Блокировка отключена для тестирования
                 self.ray.status = Status.JS_CHALLENGE
                 self.ray.requestType = 'bot'
                 self.ray.updateDB({'full_challenge_status': 'blocked'})
